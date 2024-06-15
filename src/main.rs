@@ -1,3 +1,5 @@
+use std::collections::{HashSet};
+
 use ndarray::{s, Array1, Array2, ArrayView1};
 
 fn main() {}
@@ -14,12 +16,31 @@ impl Board {
     fn get_col(&self, col: usize) -> ArrayView1<u8> {
         self.array.column(col)
     }
-    fn get_block(&self, row: isize, col: isize) -> Array1<u8> {
-        let start_row = 0;
-        let end_row = 3;
-        let start_col = 0;
-        let end_col = 3;
-        Array1::from_iter(self.array.slice(s![start_row..end_row, start_col..end_col]).iter().cloned())
+    fn get_block(&self, row: usize, col: usize) -> Array1<u8> {
+        const BLOCK_WIDTH: usize = 3;
+        const BLOCK_HEIGHT: usize = 3;
+        let start_row = (row / BLOCK_WIDTH) * BLOCK_WIDTH;
+        let end_row = start_row + BLOCK_WIDTH;
+        let start_col = (col / BLOCK_HEIGHT) * BLOCK_HEIGHT;
+        let end_col = start_col + BLOCK_HEIGHT;
+        Array1::from_iter(
+            self.array
+                .slice(s![start_row..end_row, start_col..end_col])
+                .iter()
+                .cloned(),
+        )
+    }
+    fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
+        let mut neighbor_values = HashSet::from_iter(self.get_row(row).into_iter().cloned());
+        neighbor_values.extend(self.get_col(col).into_iter().cloned());
+        neighbor_values.extend(self.get_block(row, col).iter().cloned());
+        neighbor_values.remove(&0);
+        neighbor_values
+    }
+    fn get_candidate_values(&self, row: usize, col: usize) -> HashSet<u8> {
+        let candidate_values: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5 ,6 ,7 ,8, 9]);
+        let neighbor_values = self.get_neighbor_values(row, col);
+        HashSet::difference(&candidate_values, &neighbor_values).cloned().collect()
     }
     fn solve(&self) -> Board {
         Self {
@@ -30,6 +51,8 @@ impl Board {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use crate::Board;
     use ndarray::array;
 
@@ -48,6 +71,7 @@ mod test {
                 [0, 0, 0, 0, 8, 0, 0, 7, 9]
             ],
         };
+
         let actual = input.get_row(0);
         assert_eq!(actual, array![5, 3, 0, 0, 7, 0, 0, 0, 0]);
         let actual = input.get_row(2);
@@ -60,7 +84,19 @@ mod test {
         assert_eq!(actual, array![5, 3, 0, 6, 0, 0, 0, 9, 8]);
         let actual = input.get_block(3, 0);
         assert_eq!(actual, array![8, 0, 0, 4, 0, 0, 7, 0, 0]);
-    }
+        let actual = input.get_block(3, 3);
+        assert_eq!(actual, array![0, 6, 0, 8, 0, 3, 0, 2, 0]);
+        let actual = input.get_neighbor_values(3, 3);
+        assert_eq!(actual, HashSet::from([1, 2, 3, 4, 6, 8]));
+        let actual = input.get_neighbor_values(7, 7);
+        assert_eq!(actual, HashSet::from([1, 2, 4, 5, 6, 7, 8, 9]));
+        let actual = input.get_neighbor_values(7, 8);
+        assert_eq!(actual, HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]));
+        let actual = input.get_candidate_values(3, 3);
+        assert_eq!(actual, HashSet::from([5, 7, 9]));
+        let actual = input.get_candidate_values(7, 8);
+        assert_eq!(actual, HashSet::from([]));
+     }
 
     #[test]
     fn test_01() {
