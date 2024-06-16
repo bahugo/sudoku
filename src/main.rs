@@ -1,4 +1,4 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 
 use ndarray::{s, Array1, Array2, ArrayView1};
 
@@ -43,9 +43,10 @@ impl Board {
         HashSet::difference(&candidate_values, &neighbor_values).cloned().collect()
     }
     fn solve(&self) -> Board {
-        Self {
+        let output = Self {
             array: self.array.to_owned(),
-        }
+        };
+        output
     }
 }
 
