@@ -56,32 +56,28 @@ impl Board {
     fn set_value(&mut self, row: usize, col: usize, value: u8) {
         *(self.array.get_mut((row, col)).unwrap()) = value;
     }
-    fn solve(&self) -> Board {
+    fn solve_naive_implementation(&self) -> Board {
         let mut output = Self {
             array: self.array.to_owned(),
         };
         let mut counter = 0;
         loop {
             let undefined_indexes = output.get_undefined_indexes();
-            if undefined_indexes.is_empty(){
-                break;
-            }
-            if counter > 100_000{
+            if undefined_indexes.is_empty() || counter > 100_000 {
                 break;
             }
             for (row, col) in undefined_indexes {
-                let candidate_values: Vec<u8>  = output.get_candidate_values(row, col).into_iter().collect();
-                if candidate_values.len() == 1{
+                let candidate_values: Vec<u8> =
+                    output.get_candidate_values(row, col).into_iter().collect();
+                if candidate_values.len() == 1 {
                     let value = *candidate_values.first().unwrap();
                     output.set_value(row, col, value);
                 }
-
             }
-            counter+=1;
+            counter += 1;
         }
         output
     }
-
 }
 
 #[cfg(test)]
@@ -184,7 +180,7 @@ mod test {
             ],
         };
 
-        let actual = input.solve();
+        let actual = input.solve_naive_implementation();
 
         let expected = Board {
             array: array![
