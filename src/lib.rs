@@ -2,11 +2,9 @@ use std::collections::HashSet;
 
 use ndarray::{s, Array1, Array2, ArrayView1};
 
-fn main() {}
-
 #[derive(Debug, Clone)]
-struct Board {
-    array: Array2<u8>,
+pub struct Board {
+    pub array: Array2<u8>,
 }
 
 impl Board {
@@ -56,16 +54,21 @@ impl Board {
     fn set_value(&mut self, row: usize, col: usize, value: u8) {
         *(self.array.get_mut((row, col)).unwrap()) = value;
     }
-    fn solve_naive_implementation(&self) -> Board {
+    pub fn solve_naive_implementation(&self) -> Board {
         let mut output = Self {
             array: self.array.to_owned(),
         };
-        let mut counter = 0;
+        let mut nb_undefined_values: usize = 0;
         loop {
             let undefined_indexes = output.get_undefined_indexes();
-            if undefined_indexes.is_empty() || counter > 100_000 {
+            let still_undefined_values: usize = undefined_indexes.len();
+
+            if undefined_indexes.is_empty() || still_undefined_values == nb_undefined_values {
                 break;
             }
+
+            nb_undefined_values = still_undefined_values;
+
             for (row, col) in undefined_indexes {
                 let candidate_values: Vec<u8> =
                     output.get_candidate_values(row, col).into_iter().collect();
@@ -74,7 +77,6 @@ impl Board {
                     output.set_value(row, col, value);
                 }
             }
-            counter += 1;
         }
         output
     }
@@ -82,10 +84,9 @@ impl Board {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
-    use crate::Board;
+    use super::*;
     use ndarray::array;
+    use std::collections::HashSet;
 
     #[rustfmt::skip]
     #[test]

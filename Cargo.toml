@@ -2,8 +2,13 @@
 name = "sudoku"
 version = "0.1.0"
 edition = "2021"
-
+channel = "nightly"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+divan = "0.1.14"
 ndarray = "0.15.6"
+
+[[bench]]
+name = "solver"
+harness = false
