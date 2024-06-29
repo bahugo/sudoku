@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Range, slice};
 
 use ndarray::{s, Array1, Array2, ArrayView1};
 
@@ -27,6 +27,25 @@ impl Board {
                 .iter()
                 .cloned(),
         )
+    }
+    fn get_neighbor_indexes(&self, row: usize, col: usize) -> HashSet<(usize, usize)> {
+        const TOTAL_RANGE: Range<usize> = 0..8;
+        let row_indexes: HashSet<(usize, usize)> = TOTAL_RANGE
+            .filter_map(|a| {
+                if col == a  {
+                    return None;
+                }
+                Some((row, a))
+            }).collect();
+        let col_indexes: HashSet<(usize, usize)> = TOTAL_RANGE
+            .filter_map(|a| {
+                if row == a  {
+                    return None;
+                }
+                Some((a, col))
+            }).collect();
+        row_indexes.union(col_indexes)
+        // return vec![(row, 0)]
     }
     fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
         let mut neighbor_values = HashSet::from_iter(self.get_row(row).into_iter().cloned());
@@ -75,11 +94,13 @@ impl Board {
                 if candidate_values.len() == 1 {
                     let value = *candidate_values.first().unwrap();
                     output.set_value(row, col, value);
+                    continue;
                 }
             }
         }
         output
     }
+
 }
 
 #[cfg(test)]
@@ -164,6 +185,32 @@ mod test {
             ];
         assert_eq!(actual, expected);
      }
+
+    #[test]
+    fn test_neighbor_indexes_methods() {
+        let input = Board {
+            array: array![
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0,]
+            ],
+        };
+
+        let actual = input.get_neighbor_indexes(0, 0);
+        assert_eq!(actual,
+            vec![
+                (0, 1),(0, 2),(0, 3),(0, 4),(0, 5),(0, 6),(0, 7),(0, 8),
+                (1, 0),(2, 0),(3, 0),(4, 0),(5, 0),(6, 0),(7, 0),(8, 0),
+                (1, 1),(1, 2),
+                (2, 1),(2, 2),
+            ]);
+    }
 
     #[test]
     fn test_01() {
