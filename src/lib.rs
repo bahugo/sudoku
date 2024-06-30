@@ -42,23 +42,25 @@ impl Board {
         let mut block_indexes: Vec<(usize, usize)> = vec![];
         let row_indexes: Vec<(usize, usize)> = TOTAL_RANGE
             .filter_map(|a| {
-                if col == a  {
+                if col == a {
                     return None;
                 }
                 Some((row, a))
-            }).collect();
+            })
+            .collect();
         let col_indexes: Vec<(usize, usize)> = TOTAL_RANGE
             .filter_map(|a| {
-                if row == a  {
+                if row == a {
                     return None;
                 }
                 Some((a, col))
-            }).collect();
+            })
+            .collect();
 
         let (start_row, end_row, start_col, end_col) = Self::get_block_bounds_from_index(row, col);
         for row_index in start_row..(end_row + 1) {
             for col_index in start_col..(end_col + 1) {
-                if row_index == row || col_index == col{
+                if row_index == row || col_index == col {
                     continue;
                 }
                 block_indexes.push((row_index, col_index));
@@ -116,11 +118,15 @@ impl Board {
                     output.set_value(row, col, value);
                     continue;
                 }
+                let neighbor_indexes = output.get_neighbor_indexes(row, col);
+                let neighbor_values = neighbor_indexes
+                    .iter()
+                    .map(|(r, c)| output.get_candidate_values(*r, *c));
+                // TODO check neighbor values similarities to exclude candidate values
             }
         }
         output
     }
-
 }
 
 #[cfg(test)]
@@ -159,7 +165,7 @@ mod test {
             ],
         };
         input.set_value(0, 2, 9);
-        let actual = *input.array.get([0,2]).unwrap();
+        let actual = *input.array.get([0, 2]).unwrap();
         assert_eq!(actual, 9);
     }
 
@@ -236,13 +242,31 @@ mod test {
         };
 
         let actual = input.get_neighbor_indexes(0, 0);
-        assert_eq!(actual,
+        assert_eq!(
+            actual,
             vec![
-                (0, 1),(0, 2),(0, 3),(0, 4),(0, 5),(0, 6),(0, 7),(0, 8),
-                (1, 0),(2, 0),(3, 0),(4, 0),(5, 0),(6, 0),(7, 0),(8, 0),
-                (1, 1),(1, 2),
-                (2, 1),(2, 2),
-            ]);
+                (0, 1),
+                (0, 2),
+                (0, 3),
+                (0, 4),
+                (0, 5),
+                (0, 6),
+                (0, 7),
+                (0, 8),
+                (1, 0),
+                (2, 0),
+                (3, 0),
+                (4, 0),
+                (5, 0),
+                (6, 0),
+                (7, 0),
+                (8, 0),
+                (1, 1),
+                (1, 2),
+                (2, 1),
+                (2, 2),
+            ]
+        );
     }
 
     #[test]
