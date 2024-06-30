@@ -36,10 +36,10 @@ impl Board {
                 .cloned(),
         )
     }
-    fn get_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
+
+    fn get_row_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
         const TOTAL_RANGE: Range<usize> = 0..9;
 
-        let mut block_indexes: Vec<(usize, usize)> = vec![];
         let row_indexes: Vec<(usize, usize)> = TOTAL_RANGE
             .filter_map(|a| {
                 if col == a {
@@ -48,6 +48,12 @@ impl Board {
                 Some((row, a))
             })
             .collect();
+        row_indexes
+    }
+
+    fn get_col_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
+        const TOTAL_RANGE: Range<usize> = 0..9;
+
         let col_indexes: Vec<(usize, usize)> = TOTAL_RANGE
             .filter_map(|a| {
                 if row == a {
@@ -56,6 +62,11 @@ impl Board {
                 Some((a, col))
             })
             .collect();
+        col_indexes
+    }
+
+    fn get_block_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
+        let mut block_indexes: Vec<(usize, usize)> = vec![];
 
         let (start_row, end_row, start_col, end_col) = Self::get_block_bounds_from_index(row, col);
         for row_index in start_row..(end_row + 1) {
@@ -66,7 +77,15 @@ impl Board {
                 block_indexes.push((row_index, col_index));
             }
         }
-        [row_indexes, col_indexes, block_indexes].concat()
+        block_indexes
+    }
+
+    fn get_all_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
+        [
+            self.get_row_neighbor_indexes(row, col),
+            self.get_col_neighbor_indexes(row, col),
+            self.get_block_neighbor_indexes(row, col),
+        ].concat()
     }
 
     fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
@@ -118,8 +137,8 @@ impl Board {
                     output.set_value(row, col, value);
                     continue;
                 }
-                let neighbor_indexes = output.get_neighbor_indexes(row, col);
-                let neighbor_values = neighbor_indexes
+                let row_neighbor_indexes = output.get_row_neighbor_indexes(row, col);
+                let row_neighbor_values = row_neighbor_indexes
                     .iter()
                     .map(|(r, c)| output.get_candidate_values(*r, *c));
                 // TODO check neighbor values similarities to exclude candidate values
@@ -225,6 +244,7 @@ mod test {
         assert_eq!(actual, expected);
      }
 
+    #[rustfmt::skip]
     #[test]
     fn test_neighbor_indexes_methods() {
         let input = Board {
@@ -241,30 +261,23 @@ mod test {
             ],
         };
 
-        let actual = input.get_neighbor_indexes(0, 0);
+        let actual = input.get_row_neighbor_indexes(0, 0);
+        assert_eq!(actual, vec![(0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8), ]);
+
+        let actual = input.get_col_neighbor_indexes(0, 0);
+        assert_eq!(actual, vec![ (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0), ]);
+
+        let actual = input.get_block_neighbor_indexes(0, 0);
+        assert_eq!(actual, vec![ (1, 1), (1, 2), (2, 1), (2, 2), ]);
+
+        let actual = input.get_all_neighbor_indexes(0, 0);
         assert_eq!(
             actual,
             vec![
-                (0, 1),
-                (0, 2),
-                (0, 3),
-                (0, 4),
-                (0, 5),
-                (0, 6),
-                (0, 7),
-                (0, 8),
-                (1, 0),
-                (2, 0),
-                (3, 0),
-                (4, 0),
-                (5, 0),
-                (6, 0),
-                (7, 0),
-                (8, 0),
-                (1, 1),
-                (1, 2),
-                (2, 1),
-                (2, 2),
+                (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8),
+                (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0),
+                (1, 1), (1, 2),
+                (2, 1), (2, 2),
             ]
         );
     }
