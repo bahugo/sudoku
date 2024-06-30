@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ops::Range, slice};
+use std::{collections::HashSet, ops::Range};
 
 use ndarray::{s, Array1, Array2, ArrayView1};
 
@@ -14,39 +14,59 @@ impl Board {
     fn get_col(&self, col: usize) -> ArrayView1<u8> {
         self.array.column(col)
     }
-    fn get_block(&self, row: usize, col: usize) -> Array1<u8> {
+
+    pub fn get_block_bounds_from_index(row: usize, col: usize) -> (usize, usize, usize, usize) {
         const BLOCK_WIDTH: usize = 3;
         const BLOCK_HEIGHT: usize = 3;
+        const OFFSET_BLOCK_WIDTH: usize = BLOCK_WIDTH - 1;
+        const OFFSET_BLOCK_HEIGHT: usize = BLOCK_HEIGHT - 1;
         let start_row = (row / BLOCK_WIDTH) * BLOCK_WIDTH;
-        let end_row = start_row + BLOCK_WIDTH;
+        let end_row = start_row + OFFSET_BLOCK_WIDTH;
         let start_col = (col / BLOCK_HEIGHT) * BLOCK_HEIGHT;
-        let end_col = start_col + BLOCK_HEIGHT;
+        let end_col = start_col + OFFSET_BLOCK_HEIGHT;
+        (start_row, end_row, start_col, end_col)
+    }
+
+    fn get_block(&self, row: usize, col: usize) -> Array1<u8> {
+        let (start_row, end_row, start_col, end_col) = Self::get_block_bounds_from_index(row, col);
         Array1::from_iter(
             self.array
-                .slice(s![start_row..end_row, start_col..end_col])
+                .slice(s![start_row..(end_row + 1), start_col..(end_col + 1)])
                 .iter()
                 .cloned(),
         )
     }
-    fn get_neighbor_indexes(&self, row: usize, col: usize) -> HashSet<(usize, usize)> {
-        const TOTAL_RANGE: Range<usize> = 0..8;
-        let row_indexes: HashSet<(usize, usize)> = TOTAL_RANGE
+    fn get_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
+        const TOTAL_RANGE: Range<usize> = 0..9;
+
+        let mut block_indexes: Vec<(usize, usize)> = vec![];
+        let row_indexes: Vec<(usize, usize)> = TOTAL_RANGE
             .filter_map(|a| {
                 if col == a  {
                     return None;
                 }
                 Some((row, a))
             }).collect();
-        let col_indexes: HashSet<(usize, usize)> = TOTAL_RANGE
+        let col_indexes: Vec<(usize, usize)> = TOTAL_RANGE
             .filter_map(|a| {
                 if row == a  {
                     return None;
                 }
                 Some((a, col))
             }).collect();
-        row_indexes.union(col_indexes)
-        // return vec![(row, 0)]
+
+        let (start_row, end_row, start_col, end_col) = Self::get_block_bounds_from_index(row, col);
+        for row_index in start_row..(end_row + 1) {
+            for col_index in start_col..(end_col + 1) {
+                if row_index == row || col_index == col{
+                    continue;
+                }
+                block_indexes.push((row_index, col_index));
+            }
+        }
+        [row_indexes, col_indexes, block_indexes].concat()
     }
+
     fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
         let mut neighbor_values = HashSet::from_iter(self.get_row(row).into_iter().cloned());
         neighbor_values.extend(self.get_col(col).into_iter().cloned());
@@ -110,6 +130,19 @@ mod test {
     use std::collections::HashSet;
 
     #[rustfmt::skip]
+    #[test]
+    fn test_get_block_bounds_from_indexes(){
+
+        let actual = Board::get_block_bounds_from_index(0, 0);
+        assert_eq!(actual ,(0, 2, 0, 2));
+
+        let actual = Board::get_block_bounds_from_index(4, 0);
+        assert_eq!(actual ,(3, 5, 0, 2));
+
+        let actual = Board::get_block_bounds_from_index(4, 5);
+        assert_eq!(actual ,(3, 5, 3, 5));
+    }
+
     #[test]
     fn test_set_methods() {
         let mut input = Board {
