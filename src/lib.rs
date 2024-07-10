@@ -85,7 +85,8 @@ impl Board {
             self.get_row_neighbor_indexes(row, col),
             self.get_col_neighbor_indexes(row, col),
             self.get_block_neighbor_indexes(row, col),
-        ].concat()
+        ]
+        .concat()
     }
 
     fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
@@ -114,6 +115,22 @@ impl Board {
     fn set_value(&mut self, row: usize, col: usize, value: u8) {
         *(self.array.get_mut((row, col)).unwrap()) = value;
     }
+
+    fn get_value_if_one_value_is_not_possible_in_neighbors(
+        neighbor_values: HashSet<u8>,
+        candidate_values: HashSet<u8>,
+    ) -> Option<u8> {
+        let not_candidate_in_neighbors: Vec<u8> = candidate_values
+            .into_iter()
+            .filter(|x| !neighbor_values.contains(x))
+            .collect::<Vec<_>>();
+        if not_candidate_in_neighbors.len() == 1 {
+            let value = *not_candidate_in_neighbors.first().unwrap();
+            return Some(value);
+        }
+        None
+    }
+
     pub fn solve_naive_implementation(&self) -> Board {
         let mut output = Self {
             array: self.array.to_owned(),
@@ -129,18 +146,43 @@ impl Board {
 
             nb_undefined_values = still_undefined_values;
 
-            for (row, col) in undefined_indexes {
-                let candidate_values: Vec<u8> =
-                    output.get_candidate_values(row, col).into_iter().collect();
+            for (row, col) in &undefined_indexes {
+                let candidate_values: HashSet<u8> = output
+                    .get_candidate_values(*row, *col)
+                    .into_iter()
+                    .collect();
                 if candidate_values.len() == 1 {
-                    let value = *candidate_values.first().unwrap();
-                    output.set_value(row, col, value);
+                    let value = *candidate_values.iter().next().unwrap();
+                    output.set_value(*row, *col, value);
                     continue;
                 }
-                let row_neighbor_indexes = output.get_row_neighbor_indexes(row, col);
-                let row_neighbor_values = row_neighbor_indexes
-                    .iter()
-                    .map(|(r, c)| output.get_candidate_values(*r, *c));
+
+            }
+
+            for (row, col) in &undefined_indexes {
+                let candidate_values: HashSet<u8> = output
+                    .get_candidate_values(*row, *col)
+                    .into_iter()
+                    .collect();
+                let neighbor_indexes = [
+                    output.get_row_neighbor_indexes(*row, *col),
+                    output.get_col_neighbor_indexes(*row, *col),
+                    output.get_block_neighbor_indexes(*row, *col),
+                ];
+                for neighbor_ids in neighbor_indexes {
+                    let neighbor_values: HashSet<u8> = neighbor_ids
+                        .iter()
+                        .flat_map(|(r, c)| output.get_candidate_values(*r, *c))
+                        .collect();
+                    if let Some(value) = Self::get_value_if_one_value_is_not_possible_in_neighbors(
+                        neighbor_values,
+                        candidate_values.clone(),
+                    ) {
+                        output.set_value(*row, *col, value);
+                        break;
+                    }
+                }
+
                 // TODO check neighbor values similarities to exclude candidate values
             }
         }
@@ -280,6 +322,25 @@ mod test {
                 (2, 1), (2, 2),
             ]
         );
+    }
+
+    #[test]
+    fn test_get_value_if_one_value_is_not_possible_in_neighbors() {
+        let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
+            HashSet::from([1, 2, 3]),
+            HashSet::from([1, 2, 3, 4]),
+        );
+        assert_eq!(actual, Some(4));
+        let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
+            HashSet::from([1, 2, 3]),
+            HashSet::from([1, 2]),
+        );
+        assert_eq!(actual, None);
+        let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
+            HashSet::from([1, 2, 3]),
+            HashSet::from([1, 2, 3]),
+        );
+        assert_eq!(actual, None);
     }
 
     #[test]
