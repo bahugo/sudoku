@@ -71,22 +71,13 @@ impl Board {
         let (start_row, end_row, start_col, end_col) = Self::get_block_bounds_from_index(row, col);
         for row_index in start_row..(end_row + 1) {
             for col_index in start_col..(end_col + 1) {
-                if row_index == row || col_index == col {
+                if row_index == row && col_index == col {
                     continue;
                 }
                 block_indexes.push((row_index, col_index));
             }
         }
         block_indexes
-    }
-
-    fn get_all_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
-        [
-            self.get_row_neighbor_indexes(row, col),
-            self.get_col_neighbor_indexes(row, col),
-            self.get_block_neighbor_indexes(row, col),
-        ]
-        .concat()
     }
 
     fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
@@ -120,6 +111,7 @@ impl Board {
         neighbor_values: HashSet<u8>,
         candidate_values: HashSet<u8>,
     ) -> Option<u8> {
+
         let not_candidate_in_neighbors: Vec<u8> = candidate_values
             .into_iter()
             .filter(|x| !neighbor_values.contains(x))
@@ -157,18 +149,12 @@ impl Board {
                     continue;
                 }
 
-            }
-
-            for (row, col) in &undefined_indexes {
-                let candidate_values: HashSet<u8> = output
-                    .get_candidate_values(*row, *col)
-                    .into_iter()
-                    .collect();
                 let neighbor_indexes = [
                     output.get_row_neighbor_indexes(*row, *col),
                     output.get_col_neighbor_indexes(*row, *col),
                     output.get_block_neighbor_indexes(*row, *col),
                 ];
+                let mut found_val = false;
                 for neighbor_ids in neighbor_indexes {
                     let neighbor_values: HashSet<u8> = neighbor_ids
                         .iter()
@@ -179,8 +165,12 @@ impl Board {
                         candidate_values.clone(),
                     ) {
                         output.set_value(*row, *col, value);
+                        found_val = true;
                         break;
                     }
+                }
+                if found_val {
+                    continue;
                 }
 
                 // TODO check neighbor values similarities to exclude candidate values
@@ -310,18 +300,11 @@ mod test {
         assert_eq!(actual, vec![ (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0), ]);
 
         let actual = input.get_block_neighbor_indexes(0, 0);
-        assert_eq!(actual, vec![ (1, 1), (1, 2), (2, 1), (2, 2), ]);
+        assert_eq!(actual, vec![ (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2), ]);
 
-        let actual = input.get_all_neighbor_indexes(0, 0);
-        assert_eq!(
-            actual,
-            vec![
-                (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8),
-                (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0),
-                (1, 1), (1, 2),
-                (2, 1), (2, 2),
-            ]
-        );
+        let actual = input.get_block_neighbor_indexes(5, 7);
+        assert_eq!(actual, vec![ (3, 6), (3, 7), (3, 8), (4, 6), (4, 7), (4, 8), (5, 6), (5, 8), ]);
+
     }
 
     #[test]
