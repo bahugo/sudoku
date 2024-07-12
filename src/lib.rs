@@ -87,6 +87,7 @@ impl Board {
         neighbor_values.remove(&0);
         neighbor_values
     }
+
     fn get_candidate_values(&self, row: usize, col: usize) -> HashSet<u8> {
         let candidate_values: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
         let neighbor_values = self.get_neighbor_values(row, col);
@@ -111,13 +112,33 @@ impl Board {
         neighbor_values: HashSet<u8>,
         candidate_values: HashSet<u8>,
     ) -> Option<u8> {
-
         let not_candidate_in_neighbors: Vec<u8> = candidate_values
             .into_iter()
             .filter(|x| !neighbor_values.contains(x))
             .collect::<Vec<_>>();
         if not_candidate_in_neighbors.len() == 1 {
             let value = *not_candidate_in_neighbors.first().unwrap();
+            return Some(value);
+        }
+        None
+    }
+
+    pub fn get_value_if_only_one_candidate(candidate_values: &HashSet<u8>) -> Option<u8> {
+        if candidate_values.len() != 1 {
+            return None;
+        }
+        let value = *candidate_values.iter().next().unwrap();
+        Some(value)
+    }
+
+    pub fn get_value_if_not_candidate_in_neighbors(
+        neighbor_values: HashSet<u8>,
+        candidate_values: &HashSet<u8>,
+    ) -> Option<u8> {
+        if let Some(value) = Self::get_value_if_one_value_is_not_possible_in_neighbors(
+            neighbor_values,
+            candidate_values.clone(),
+        ) {
             return Some(value);
         }
         None
@@ -143,30 +164,29 @@ impl Board {
                     .get_candidate_values(*row, *col)
                     .into_iter()
                     .collect();
-                if candidate_values.len() == 1 {
-                    let value = *candidate_values.iter().next().unwrap();
+
+                if let Some(value) = Board::get_value_if_only_one_candidate(&candidate_values) {
                     output.set_value(*row, *col, value);
                     continue;
                 }
 
-                let neighbor_indexes = [
+                let mut found_val = false;
+                for neighbor_ids in [
                     output.get_row_neighbor_indexes(*row, *col),
                     output.get_col_neighbor_indexes(*row, *col),
                     output.get_block_neighbor_indexes(*row, *col),
-                ];
-                let mut found_val = false;
-                for neighbor_ids in neighbor_indexes {
+                ] {
                     let neighbor_values: HashSet<u8> = neighbor_ids
                         .iter()
                         .flat_map(|(r, c)| output.get_candidate_values(*r, *c))
                         .collect();
-                    if let Some(value) = Self::get_value_if_one_value_is_not_possible_in_neighbors(
+                    if let Some(value) = Board::get_value_if_not_candidate_in_neighbors(
                         neighbor_values,
-                        candidate_values.clone(),
+                        &candidate_values,
                     ) {
                         output.set_value(*row, *col, value);
                         found_val = true;
-                        break;
+                        continue;
                     }
                 }
                 if found_val {
