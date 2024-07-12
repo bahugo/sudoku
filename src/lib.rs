@@ -110,11 +110,12 @@ impl Board {
 
     fn get_value_if_one_value_is_not_possible_in_neighbors(
         neighbor_values: HashSet<u8>,
-        candidate_values: HashSet<u8>,
+        candidate_values: &HashSet<u8>,
     ) -> Option<u8> {
         let not_candidate_in_neighbors: Vec<u8> = candidate_values
-            .into_iter()
+            .iter()
             .filter(|x| !neighbor_values.contains(x))
+            .copied()
             .collect::<Vec<_>>();
         if not_candidate_in_neighbors.len() == 1 {
             let value = *not_candidate_in_neighbors.first().unwrap();
@@ -137,7 +138,7 @@ impl Board {
     ) -> Option<u8> {
         if let Some(value) = Self::get_value_if_one_value_is_not_possible_in_neighbors(
             neighbor_values,
-            candidate_values.clone(),
+            candidate_values,
         ) {
             return Some(value);
         }
@@ -331,17 +332,17 @@ mod test {
     fn test_get_value_if_one_value_is_not_possible_in_neighbors() {
         let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
             HashSet::from([1, 2, 3]),
-            HashSet::from([1, 2, 3, 4]),
+            &HashSet::from([1, 2, 3, 4]),
         );
         assert_eq!(actual, Some(4));
         let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
             HashSet::from([1, 2, 3]),
-            HashSet::from([1, 2]),
+            &HashSet::from([1, 2]),
         );
         assert_eq!(actual, None);
         let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
             HashSet::from([1, 2, 3]),
-            HashSet::from([1, 2, 3]),
+            &HashSet::from([1, 2, 3]),
         );
         assert_eq!(actual, None);
     }
