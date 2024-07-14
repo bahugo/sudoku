@@ -160,7 +160,7 @@ impl Board {
 
             nb_undefined_values = still_undefined_values;
 
-            for (row, col) in &undefined_indexes {
+            'traversing_board: for (row, col) in &undefined_indexes {
                 let candidate_values: HashSet<u8> = output
                     .get_candidate_values(*row, *col)
                     .into_iter()
@@ -171,27 +171,26 @@ impl Board {
                     continue;
                 }
 
-                let mut found_val = false;
                 for neighbor_ids in [
                     output.get_row_neighbor_indexes(*row, *col),
                     output.get_col_neighbor_indexes(*row, *col),
                     output.get_block_neighbor_indexes(*row, *col),
                 ] {
-                    let neighbor_values: HashSet<u8> = neighbor_ids
+                    let neighbor_values: Vec<HashSet<u8>> = neighbor_ids
                         .iter()
-                        .flat_map(|(r, c)| output.get_candidate_values(*r, *c))
+                        .map(|(r, c)| output.get_candidate_values(*r, *c))
+                        .collect();
+                    let unique_neighbor_values: HashSet<u8> = neighbor_values
+                        .iter()
+                        .flat_map(|x| x.clone())
                         .collect();
                     if let Some(value) = Board::get_value_if_not_candidate_in_neighbors(
-                        neighbor_values,
+                        unique_neighbor_values,
                         &candidate_values,
                     ) {
                         output.set_value(*row, *col, value);
-                        found_val = true;
-                        continue;
+                        continue 'traversing_board;
                     }
-                }
-                if found_val {
-                    continue;
                 }
 
                 // TODO check neighbor values similarities to exclude candidate values
@@ -357,6 +356,40 @@ mod test {
                 [8, 0, 0, 0, 6, 0, 0, 0, 3],
                 [4, 0, 0, 8, 0, 3, 0, 0, 1],
                 [7, 0, 0, 0, 2, 0, 0, 0, 6],
+                [0, 6, 0, 0, 0, 0, 2, 8, 0],
+                [0, 0, 0, 4, 1, 9, 0, 0, 5],
+                [0, 0, 0, 0, 8, 0, 0, 7, 9]
+            ],
+        };
+
+        let actual = input.solve_naive_implementation();
+
+        let expected = Board {
+            array: array![
+                [5, 3, 4, 6, 7, 8, 9, 1, 2],
+                [6, 7, 2, 1, 9, 5, 3, 4, 8],
+                [1, 9, 8, 3, 4, 2, 5, 6, 7],
+                [8, 5, 9, 7, 6, 1, 4, 2, 3],
+                [4, 2, 6, 8, 5, 3, 7, 9, 1],
+                [7, 1, 3, 9, 2, 4, 8, 5, 6],
+                [9, 6, 1, 5, 3, 7, 2, 8, 4],
+                [2, 8, 7, 4, 1, 9, 6, 3, 5],
+                [3, 4, 5, 2, 8, 6, 1, 7, 9]
+            ],
+        };
+        assert_eq!(actual.array, expected.array);
+    }
+
+    #[test]
+    fn test_02() {
+        let input = Board {
+            array: array![
+                [0, 3, 0, 0, 7, 0, 0, 0, 0],
+                [6, 0, 0, 1, 9, 5, 0, 0, 0],
+                [0, 9, 8, 0, 0, 0, 0, 6, 0],
+                [8, 0, 0, 0, 6, 0, 0, 0, 3],
+                [4, 0, 0, 8, 0, 3, 0, 0, 1],
+                [7, 0, 0, 0, 0, 0, 0, 0, 6],
                 [0, 6, 0, 0, 0, 0, 2, 8, 0],
                 [0, 0, 0, 4, 1, 9, 0, 0, 5],
                 [0, 0, 0, 0, 8, 0, 0, 7, 9]
