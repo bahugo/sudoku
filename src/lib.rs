@@ -1,6 +1,16 @@
-use std::{collections::HashSet, ops::Range};
+use std::{
+    collections::{HashMap, HashSet},
+    ops::Range,
+    u8,
+};
 
 use ndarray::{s, Array1, Array2, ArrayView1};
+
+pub enum GroupKind {
+    Row = 0,
+    Column = 1,
+    Block = 2,
+}
 
 #[derive(Debug, Clone)]
 pub struct Board {
@@ -95,6 +105,26 @@ impl Board {
             .cloned()
             .collect()
     }
+
+    fn get_partial_candidate_values(
+        &self,
+        kind: &GroupKind,
+        row: usize,
+        col: usize,
+    ) -> HashSet<u8> {
+        let candidate_values: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        let mut neighbor_values: HashSet<u8> = match kind {
+            GroupKind::Row => HashSet::from_iter(self.get_row(row).into_iter().cloned()),
+            GroupKind::Column => HashSet::from_iter(self.get_col(col).into_iter().cloned()),
+            GroupKind::Block => HashSet::from_iter(self.get_block(row, col).iter().cloned()),
+        };
+
+        neighbor_values.remove(&0);
+
+        HashSet::difference(&candidate_values, &neighbor_values)
+            .cloned()
+            .collect()
+    }
     fn get_undefined_indexes(&self) -> Vec<(usize, usize)> {
         let output: Vec<(usize, usize)> = self
             .array
@@ -161,7 +191,7 @@ impl Board {
             nb_undefined_values = still_undefined_values;
 
             'traversing_board: for (row, col) in &undefined_indexes {
-                let candidate_values: HashSet<u8> = output
+                let mut candidate_values: HashSet<u8> = output
                     .get_candidate_values(*row, *col)
                     .into_iter()
                     .collect();
@@ -171,16 +201,17 @@ impl Board {
                     continue;
                 }
 
-                for neighbor_ids in [
-                    |output: &Board, row: &usize, col: &usize| output.get_row_neighbor_indexes(*row, *col),
-                    |output: &Board, row: &usize, col: &usize| output.get_col_neighbor_indexes(*row, *col),
-                    |output: &Board, row: &usize, col: &usize| output.get_block_neighbor_indexes(*row, *col),
-                ] {
-                    let neighbor_values: Vec<HashSet<u8>> = neighbor_ids(&output, row, col)
+                for kind in [GroupKind::Row, GroupKind::Column, GroupKind::Block] {
+                    let neighbor_ids = match kind {
+                        GroupKind::Row => output.get_row_neighbor_indexes(*row, *col),
+                        GroupKind::Column => output.get_col_neighbor_indexes(*row, *col),
+                        GroupKind::Block => output.get_block_neighbor_indexes(*row, *col),
+                    };
+                    let neighbor_candidate_values: Vec<HashSet<u8>> = neighbor_ids
                         .iter()
-                        .map(|(r, c)| output.get_candidate_values(*r, *c))
+                        .map(|(r, c)| output.get_partial_candidate_values(&kind, *r, *c))
                         .collect();
-                    let unique_neighbor_values: HashSet<u8> = neighbor_values
+                    let unique_neighbor_values: HashSet<u8> = neighbor_candidate_values
                         .iter()
                         .flat_map(|x| x.clone())
                         .collect();
@@ -191,9 +222,47 @@ impl Board {
                         output.set_value(*row, *col, value);
                         continue 'traversing_board;
                     }
-                }
 
-                // TODO check neighbor values similarities to exclude candidate values
+                    // Count neighbor_values occurences
+                    let mut acc: HashMap<Vec<u8>, usize> = HashMap::new();
+                    // let mut val_count = HashMap::new();
+                    neighbor_candidate_values.iter().for_each(|x| {
+                        let mut key: Vec<u8> = x.iter().copied().collect();
+                        key.sort();
+                        if key.is_empty() {
+                            return;
+                        }
+                        if let Some(res) = acc.get_mut(&key) {
+                            *res += 1;
+                        } else {
+                            acc.insert(key, 1);
+                        }
+                    });
+                    let to_remove_from_canditates: Vec<u8> = acc
+                        .iter()
+                        .filter_map(|(values, count)| {
+                            if (*values).len() != *count {
+                                return None;
+                            }
+                            Some(values.clone())
+                        })
+                        .flatten()
+                        .collect();
+                    if !to_remove_from_canditates.is_empty() {
+                        to_remove_from_canditates.iter().for_each(|x| {
+                            candidate_values.take(x);
+                        });
+                        // println!("neighbor_candidate_values {:?}", neighbor_candidate_values);
+                        // println!("counts {:?}", acc);
+                        // println!("to_remove_from_candidates {:?}", to_remove_from_canditates);
+                        if let Some(value) =
+                            Board::get_value_if_only_one_candidate(&candidate_values)
+                        {
+                            output.set_value(*row, *col, value);
+                            continue 'traversing_board;
+                        }
+                    }
+                }
             }
         }
         output
