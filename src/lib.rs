@@ -172,11 +172,11 @@ impl Board {
                 }
 
                 for neighbor_ids in [
-                    output.get_row_neighbor_indexes(*row, *col),
-                    output.get_col_neighbor_indexes(*row, *col),
-                    output.get_block_neighbor_indexes(*row, *col),
+                    |output: &Board, row: &usize, col: &usize| output.get_row_neighbor_indexes(*row, *col),
+                    |output: &Board, row: &usize, col: &usize| output.get_col_neighbor_indexes(*row, *col),
+                    |output: &Board, row: &usize, col: &usize| output.get_block_neighbor_indexes(*row, *col),
                 ] {
-                    let neighbor_values: Vec<HashSet<u8>> = neighbor_ids
+                    let neighbor_values: Vec<HashSet<u8>> = neighbor_ids(&output, row, col)
                         .iter()
                         .map(|(r, c)| output.get_candidate_values(*r, *c))
                         .collect();
