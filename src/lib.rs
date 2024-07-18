@@ -4,9 +4,10 @@ use std::{
 };
 
 pub enum GroupKind {
-    Row = 0,
-    Column = 1,
-    Block = 2,
+    Row,
+    Column,
+    Block,
+    All,
 }
 
 #[derive(Debug, Clone)]
@@ -117,7 +118,9 @@ impl Board {
         block_indexes
     }
 
-    fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
+    fn get_neighbor_values(&self,
+        row: usize,
+        col: usize) -> HashSet<u8> {
         let mut neighbor_values = HashSet::from_iter(
             self.get_row(row).iter().cloned());
         neighbor_values.extend(self.get_col(col).iter().cloned());
@@ -126,33 +129,27 @@ impl Board {
         neighbor_values
     }
 
-    fn get_candidate_values(&self, row: usize, col: usize) -> HashSet<u8> {
-        let candidate_values: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        let neighbor_values = self.get_neighbor_values(row, col);
-        HashSet::difference(&candidate_values, &neighbor_values)
-            .cloned()
-            .collect()
-    }
-
-    fn get_partial_candidate_values(
+    fn get_candidate_values(
         &self,
-        kind: &GroupKind,
         row: usize,
         col: usize,
     ) -> HashSet<u8> {
         let candidate_values: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        let mut neighbor_values: HashSet<u8> = match kind {
-            GroupKind::Row => HashSet::from_iter(self.get_row(row).iter().cloned()),
-            GroupKind::Column => HashSet::from_iter(self.get_col(col).iter().cloned()),
-            GroupKind::Block => HashSet::from_iter(self.get_block(row, col).iter().cloned()),
-        };
-
-        neighbor_values.remove(&0);
-
+        let neighbor_indexes = self.get_row_neighbor_indexes(row, col)
+                .into_iter()
+                .chain(self.get_col_neighbor_indexes(row, col))
+                .chain(self.get_block_neighbor_indexes(row, col))
+                .collect::<Vec<(usize, usize)>>();
+        let neighbor_values: HashSet<u8> = HashSet::from_iter(
+            neighbor_indexes
+            .iter()
+            .map(|(i_row, i_col)| self.array[*i_row][*i_col])
+        );
         HashSet::difference(&candidate_values, &neighbor_values)
             .cloned()
             .collect()
     }
+
     fn get_undefined_indexes(&self) -> Vec<(usize, usize)> {
         let output: Vec<(usize, usize)> = Self::get_all_indexes()
             .iter()
@@ -234,20 +231,25 @@ impl Board {
                     continue;
                 }
 
-                for kind in [GroupKind::Row, GroupKind::Column, GroupKind::Block] {
+                for kind in [GroupKind::Row,
+                    GroupKind::Column,
+                    GroupKind::Block
+                ] {
                     let neighbor_ids = match kind {
                         GroupKind::Row => output.get_row_neighbor_indexes(*row, *col),
                         GroupKind::Column => output.get_col_neighbor_indexes(*row, *col),
                         GroupKind::Block => output.get_block_neighbor_indexes(*row, *col),
+                        GroupKind::All => todo!(),
                     };
                     let neighbor_candidate_values: Vec<HashSet<u8>> = neighbor_ids
                         .iter()
-                        .map(|(r, c)| output.get_partial_candidate_values(&kind, *r, *c))
+                        .map(|(r, c)| output.get_candidate_values(*r, *c))
                         .collect();
                     let unique_neighbor_values: HashSet<u8> = neighbor_candidate_values
                         .iter()
                         .flat_map(|x| x.clone())
                         .collect();
+
                     if let Some(value) = Board::get_value_if_not_candidate_in_neighbors(
                         unique_neighbor_values,
                         &candidate_values,
@@ -282,12 +284,17 @@ impl Board {
                         .flatten()
                         .collect();
                     if !to_remove_from_canditates.is_empty() {
-                        to_remove_from_canditates.iter().for_each(|x| {
-                            candidate_values.take(x);
-                        });
+                        // println!("row {} col {}", row, col);
+                        // println!("board {:?}", output);
+                        // println!("candidate_values {:?}", candidate_values);
                         // println!("neighbor_candidate_values {:?}", neighbor_candidate_values);
                         // println!("counts {:?}", acc);
                         // println!("to_remove_from_candidates {:?}", to_remove_from_canditates);
+
+                        to_remove_from_canditates.iter().for_each(|x| {
+                            candidate_values.take(x);
+                        });
+
                         if let Some(value) =
                             Board::get_value_if_only_one_candidate(&candidate_values)
                         {
@@ -296,6 +303,7 @@ impl Board {
                         }
                     }
                 }
+
             }
         }
         output
@@ -398,7 +406,7 @@ mod test {
         let actual = input.get_candidate_values(3, 3);
         assert_eq!(actual, HashSet::from([5, 7, 9]));
         let actual = input.get_candidate_values(7, 8);
-        assert_eq!(actual, HashSet::from([]));
+        assert_eq!(actual, HashSet::from([5]));
         let actual = input.get_undefined_indexes();
         let expected = vec![
             (0,2),(0,3),(0,5),(0,6),(0,7),(0,8),
