@@ -1,4 +1,3 @@
-use ndarray::array;
 use sudoku::Board;
 
 fn main() {
@@ -8,7 +7,7 @@ fn main() {
 #[divan::bench]
 fn simple_board_naive_implementation() {
     let input = Board {
-        array: array![
+        array: [
             [5, 3, 0, 0, 7, 0, 0, 0, 0],
             [6, 0, 0, 1, 9, 5, 0, 0, 0],
             [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -27,7 +26,7 @@ fn simple_board_naive_implementation() {
 #[divan::bench]
 fn less_simple_board_naive_implementation() {
     let input = Board {
-        array: array![
+        array: [
             [0, 3, 0, 0, 7, 0, 0, 0, 0],
             [6, 0, 0, 1, 9, 5, 0, 0, 0],
             [0, 9, 8, 0, 0, 0, 0, 6, 0],

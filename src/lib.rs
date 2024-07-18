@@ -1,10 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     ops::Range,
-    u8,
 };
-
-use ndarray::{s, Array1, Array2, ArrayView1};
 
 pub enum GroupKind {
     Row = 0,
@@ -14,15 +11,31 @@ pub enum GroupKind {
 
 #[derive(Debug, Clone)]
 pub struct Board {
-    pub array: Array2<u8>,
+    pub array: [[u8;9];9],
+
 }
 
 impl Board {
-    fn get_row(&self, row: usize) -> ArrayView1<u8> {
-        self.array.row(row)
+    const TOTAL_RANGE: Range<usize> = 0..9;
+
+    fn get_all_indexes() -> Vec<(usize, usize)>{
+        let mut block_indexes: Vec<(usize, usize)> = vec![];
+        for row_index in Self::TOTAL_RANGE {
+            for col_index in Self::TOTAL_RANGE {
+                block_indexes.push((row_index, col_index));
+            }
+        }
+        block_indexes
     }
-    fn get_col(&self, col: usize) -> ArrayView1<u8> {
-        self.array.column(col)
+
+    fn get_row(&self, row: usize) -> Vec<u8> {
+        self.array[row].to_vec()
+    }
+    fn get_col(&self, col: usize) -> Vec<u8> {
+        self.array
+            .into_iter()
+            .map(|row_array| row_array[col])
+            .collect()
     }
 
     pub fn get_block_bounds_from_index(row: usize, col: usize) -> (usize, usize, usize, usize) {
@@ -37,20 +50,35 @@ impl Board {
         (start_row, end_row, start_col, end_col)
     }
 
-    fn get_block(&self, row: usize, col: usize) -> Array1<u8> {
+    fn get_block(&self, row: usize, col: usize) -> Vec<u8> {
         let (start_row, end_row, start_col, end_col) = Self::get_block_bounds_from_index(row, col);
-        Array1::from_iter(
-            self.array
-                .slice(s![start_row..(end_row + 1), start_col..(end_col + 1)])
-                .iter()
-                .cloned(),
-        )
+        self.array
+            .into_iter()
+            .enumerate()
+            .filter_map(|(i_row, row_array)| {
+                if i_row < start_row || i_row> end_row {
+                    return None;
+                }
+                Some(row_array
+                    .into_iter()
+                    .enumerate()
+                    .filter_map(|(i_col, val)|{
+                        if i_col < start_col || i_col > end_col {
+                            return None;
+                        }
+                        Some(val)
+                    })
+                        .collect::<Vec<u8>>()
+                )
+            })
+                .flatten()
+            .collect()
+
     }
 
     fn get_row_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
-        const TOTAL_RANGE: Range<usize> = 0..9;
 
-        let row_indexes: Vec<(usize, usize)> = TOTAL_RANGE
+        let row_indexes: Vec<(usize, usize)> = Self::TOTAL_RANGE
             .filter_map(|a| {
                 if col == a {
                     return None;
@@ -62,9 +90,8 @@ impl Board {
     }
 
     fn get_col_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
-        const TOTAL_RANGE: Range<usize> = 0..9;
 
-        let col_indexes: Vec<(usize, usize)> = TOTAL_RANGE
+        let col_indexes: Vec<(usize, usize)> = Self::TOTAL_RANGE
             .filter_map(|a| {
                 if row == a {
                     return None;
@@ -91,8 +118,9 @@ impl Board {
     }
 
     fn get_neighbor_values(&self, row: usize, col: usize) -> HashSet<u8> {
-        let mut neighbor_values = HashSet::from_iter(self.get_row(row).into_iter().cloned());
-        neighbor_values.extend(self.get_col(col).into_iter().cloned());
+        let mut neighbor_values = HashSet::from_iter(
+            self.get_row(row).iter().cloned());
+        neighbor_values.extend(self.get_col(col).iter().cloned());
         neighbor_values.extend(self.get_block(row, col).iter().cloned());
         neighbor_values.remove(&0);
         neighbor_values
@@ -114,8 +142,8 @@ impl Board {
     ) -> HashSet<u8> {
         let candidate_values: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
         let mut neighbor_values: HashSet<u8> = match kind {
-            GroupKind::Row => HashSet::from_iter(self.get_row(row).into_iter().cloned()),
-            GroupKind::Column => HashSet::from_iter(self.get_col(col).into_iter().cloned()),
+            GroupKind::Row => HashSet::from_iter(self.get_row(row).iter().cloned()),
+            GroupKind::Column => HashSet::from_iter(self.get_col(col).iter().cloned()),
             GroupKind::Block => HashSet::from_iter(self.get_block(row, col).iter().cloned()),
         };
 
@@ -126,16 +154,21 @@ impl Board {
             .collect()
     }
     fn get_undefined_indexes(&self) -> Vec<(usize, usize)> {
-        let output: Vec<(usize, usize)> = self
-            .array
-            .indexed_iter()
-            .filter(|value| *value.1 == 0)
-            .map(|a| a.0)
+        let output: Vec<(usize, usize)> = Self::get_all_indexes()
+            .iter()
+            .filter_map(|(i_row, i_col)| {
+                let val = self.array[*i_row][*i_col];
+                if val != 0{
+                return None;
+            }
+                Some((*i_row, *i_col))
+            } )
             .collect();
         output
     }
+
     fn set_value(&mut self, row: usize, col: usize, value: u8) {
-        *(self.array.get_mut((row, col)).unwrap()) = value;
+        self.array[row][col] = value;
     }
 
     fn get_value_if_one_value_is_not_possible_in_neighbors(
@@ -272,7 +305,6 @@ impl Board {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ndarray::array;
     use std::collections::HashSet;
 
     #[rustfmt::skip]
@@ -289,10 +321,27 @@ mod test {
         assert_eq!(actual ,(3, 5, 3, 5));
     }
 
+    #[rustfmt::skip]
+    #[test]
+    fn test_get_all_indexes() {
+        let actual = Board::get_all_indexes();
+        assert_eq!(actual ,[
+            (0,0), (0,1), (0,2), (0,3), (0,4), (0,5), (0,6), (0,7), (0,8),
+            (1,0), (1,1), (1,2), (1,3), (1,4), (1,5), (1,6), (1,7), (1,8),
+            (2,0), (2,1), (2,2), (2,3), (2,4), (2,5), (2,6), (2,7), (2,8),
+            (3,0), (3,1), (3,2), (3,3), (3,4), (3,5), (3,6), (3,7), (3,8),
+            (4,0), (4,1), (4,2), (4,3), (4,4), (4,5), (4,6), (4,7), (4,8),
+            (5,0), (5,1), (5,2), (5,3), (5,4), (5,5), (5,6), (5,7), (5,8),
+            (6,0), (6,1), (6,2), (6,3), (6,4), (6,5), (6,6), (6,7), (6,8),
+            (7,0), (7,1), (7,2), (7,3), (7,4), (7,5), (7,6), (7,7), (7,8),
+            (8,0), (8,1), (8,2), (8,3), (8,4), (8,5), (8,6), (8,7), (8,8),
+        ]);
+    }
+
     #[test]
     fn test_set_methods() {
         let mut input = Board {
-            array: array![
+            array: [
                 [5, 3, 0, 0, 7, 0, 0, 0, 0],
                 [6, 0, 0, 1, 9, 5, 0, 0, 0],
                 [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -305,7 +354,7 @@ mod test {
             ],
         };
         input.set_value(0, 2, 9);
-        let actual = *input.array.get([0, 2]).unwrap();
+        let actual = input.array[0][2];
         assert_eq!(actual, 9);
     }
 
@@ -313,7 +362,7 @@ mod test {
     #[test]
     fn test_access_methods() {
         let input = Board {
-            array: array![
+            array: [
                 [5, 3, 0, 0, 7, 0, 0, 0, 0],
                 [6, 0, 0, 1, 9, 5, 0, 0, 0],
                 [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -327,19 +376,19 @@ mod test {
         };
 
         let actual = input.get_row(0);
-        assert_eq!(actual, array![5, 3, 0, 0, 7, 0, 0, 0, 0]);
+        assert_eq!(actual, [5, 3, 0, 0, 7, 0, 0, 0, 0]);
         let actual = input.get_row(2);
-        assert_eq!(actual, array![0, 9, 8, 0, 0, 0, 0, 6, 0]);
+        assert_eq!(actual, [0, 9, 8, 0, 0, 0, 0, 6, 0]);
         let actual = input.get_col(0);
-        assert_eq!(actual, array![5, 6, 0, 8, 4, 7, 0, 0, 0]);
+        assert_eq!(actual, [5, 6, 0, 8, 4, 7, 0, 0, 0]);
         let actual = input.get_col(8);
-        assert_eq!(actual, array![0, 0, 0, 3, 1, 6, 0, 5, 9]);
+        assert_eq!(actual, [0, 0, 0, 3, 1, 6, 0, 5, 9]);
         let actual = input.get_block(0, 0);
-        assert_eq!(actual, array![5, 3, 0, 6, 0, 0, 0, 9, 8]);
+        assert_eq!(actual, [5, 3, 0, 6, 0, 0, 0, 9, 8]);
         let actual = input.get_block(3, 0);
-        assert_eq!(actual, array![8, 0, 0, 4, 0, 0, 7, 0, 0]);
+        assert_eq!(actual, [8, 0, 0, 4, 0, 0, 7, 0, 0]);
         let actual = input.get_block(3, 3);
-        assert_eq!(actual, array![0, 6, 0, 8, 0, 3, 0, 2, 0]);
+        assert_eq!(actual, [0, 6, 0, 8, 0, 3, 0, 2, 0]);
         let actual = input.get_neighbor_values(3, 3);
         assert_eq!(actual, HashSet::from([1, 2, 3, 4, 6, 8]));
         let actual = input.get_neighbor_values(7, 7);
@@ -369,7 +418,7 @@ mod test {
     #[test]
     fn test_neighbor_indexes_methods() {
         let input = Board {
-            array: array![
+            array: [
                 [0, 0, 0, 0, 0, 0, 0, 0, 0,],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0,],
                 [0, 0, 0, 0, 0, 0, 0, 0, 0,],
@@ -418,7 +467,7 @@ mod test {
     #[test]
     fn test_01() {
         let input = Board {
-            array: array![
+            array: [
                 [5, 3, 0, 0, 7, 0, 0, 0, 0],
                 [6, 0, 0, 1, 9, 5, 0, 0, 0],
                 [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -434,7 +483,7 @@ mod test {
         let actual = input.solve_naive_implementation();
 
         let expected = Board {
-            array: array![
+            array: [
                 [5, 3, 4, 6, 7, 8, 9, 1, 2],
                 [6, 7, 2, 1, 9, 5, 3, 4, 8],
                 [1, 9, 8, 3, 4, 2, 5, 6, 7],
@@ -452,7 +501,7 @@ mod test {
     #[test]
     fn test_02() {
         let input = Board {
-            array: array![
+            array: [
                 [0, 3, 0, 0, 7, 0, 0, 0, 0],
                 [6, 0, 0, 1, 9, 5, 0, 0, 0],
                 [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -468,7 +517,7 @@ mod test {
         let actual = input.solve_naive_implementation();
 
         let expected = Board {
-            array: array![
+            array: [
                 [5, 3, 4, 6, 7, 8, 9, 1, 2],
                 [6, 7, 2, 1, 9, 5, 3, 4, 8],
                 [1, 9, 8, 3, 4, 2, 5, 6, 7],

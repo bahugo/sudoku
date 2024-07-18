@@ -7,7 +7,6 @@ channel = "nightly"
 
 [dependencies]
 divan = "0.1.14"
-ndarray = "0.15.6"
 
 [[bench]]
 name = "solver"
