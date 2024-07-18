@@ -118,17 +118,6 @@ impl Board {
         block_indexes
     }
 
-    fn get_neighbor_values(&self,
-        row: usize,
-        col: usize) -> HashSet<u8> {
-        let mut neighbor_values = HashSet::from_iter(
-            self.get_row(row).iter().cloned());
-        neighbor_values.extend(self.get_col(col).iter().cloned());
-        neighbor_values.extend(self.get_block(row, col).iter().cloned());
-        neighbor_values.remove(&0);
-        neighbor_values
-    }
-
     fn get_candidate_values(
         &self,
         row: usize,
@@ -397,12 +386,6 @@ mod test {
         assert_eq!(actual, [8, 0, 0, 4, 0, 0, 7, 0, 0]);
         let actual = input.get_block(3, 3);
         assert_eq!(actual, [0, 6, 0, 8, 0, 3, 0, 2, 0]);
-        let actual = input.get_neighbor_values(3, 3);
-        assert_eq!(actual, HashSet::from([1, 2, 3, 4, 6, 8]));
-        let actual = input.get_neighbor_values(7, 7);
-        assert_eq!(actual, HashSet::from([1, 2, 4, 5, 6, 7, 8, 9]));
-        let actual = input.get_neighbor_values(7, 8);
-        assert_eq!(actual, HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]));
         let actual = input.get_candidate_values(3, 3);
         assert_eq!(actual, HashSet::from([5, 7, 9]));
         let actual = input.get_candidate_values(7, 8);
