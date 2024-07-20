@@ -6,8 +6,8 @@ fn main() {
 
 #[divan::bench]
 fn simple_board_naive_implementation() {
-    let input = Board {
-        array: [
+    let input = Board::new(
+        [
             [5, 3, 0, 0, 7, 0, 0, 0, 0],
             [6, 0, 0, 1, 9, 5, 0, 0, 0],
             [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -18,15 +18,15 @@ fn simple_board_naive_implementation() {
             [0, 0, 0, 4, 1, 9, 0, 0, 5],
             [0, 0, 0, 0, 8, 0, 0, 7, 9]
         ],
-    };
+    );
 
     input.solve_naive_implementation();
 }
 
 #[divan::bench]
 fn less_simple_board_naive_implementation() {
-    let input = Board {
-        array: [
+    let input = Board::new(
+        [
             [0, 3, 0, 0, 7, 0, 0, 0, 0],
             [6, 0, 0, 1, 9, 5, 0, 0, 0],
             [0, 9, 8, 0, 0, 0, 0, 6, 0],
@@ -37,7 +37,7 @@ fn less_simple_board_naive_implementation() {
             [0, 0, 0, 4, 1, 9, 0, 0, 5],
             [0, 0, 0, 0, 8, 0, 0, 7, 9]
         ],
-    };
+    );
 
     input.solve_naive_implementation();
 }
