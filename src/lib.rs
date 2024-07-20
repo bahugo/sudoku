@@ -17,13 +17,27 @@ pub struct Board {
 }
 
 impl Board {
-    const TOTAL_RANGE: Range<usize> = 0..9;
+    const NUMBER_OF_ROWS: usize = 9;
+    const NUMBER_OF_COLS: usize = 9;
+    const NUMBER_OF_CELLS: usize = Self::NUMBER_OF_ROWS * Self::NUMBER_OF_COLS;
+    const TOTAL_RANGE: Range<usize> = 0..Self::NUMBER_OF_ROWS;
+    const BLOCK_WIDTH: usize = 3;
+    const BLOCK_HEIGHT: usize = 3;
+    const OFFSET_BLOCK_WIDTH: usize = Self::BLOCK_WIDTH - 1;
+    const OFFSET_BLOCK_HEIGHT: usize = Self::BLOCK_HEIGHT - 1;
 
     pub fn new(array: [[u8; 9]; 9]) -> Self {
         Self {
             array,
             ..Default::default()
         }
+    }
+
+    fn solved_pct(&self,) -> f64 {
+        let nb_undefined = self.get_undefined_indexes().len();
+        let numerator = (Self::NUMBER_OF_CELLS - nb_undefined) as f64;
+        100.0 * numerator / (Self::NUMBER_OF_CELLS as f64)
+
     }
 
     fn get_all_indexes() -> Vec<(usize, usize)> {
@@ -47,14 +61,10 @@ impl Board {
     }
 
     pub fn get_block_bounds_from_index(row: usize, col: usize) -> (usize, usize, usize, usize) {
-        const BLOCK_WIDTH: usize = 3;
-        const BLOCK_HEIGHT: usize = 3;
-        const OFFSET_BLOCK_WIDTH: usize = BLOCK_WIDTH - 1;
-        const OFFSET_BLOCK_HEIGHT: usize = BLOCK_HEIGHT - 1;
-        let start_row = (row / BLOCK_WIDTH) * BLOCK_WIDTH;
-        let end_row = start_row + OFFSET_BLOCK_WIDTH;
-        let start_col = (col / BLOCK_HEIGHT) * BLOCK_HEIGHT;
-        let end_col = start_col + OFFSET_BLOCK_HEIGHT;
+        let start_row = (row / Self::BLOCK_WIDTH) * Self::BLOCK_WIDTH;
+        let end_row = start_row + Self::OFFSET_BLOCK_WIDTH;
+        let start_col = (col / Self::BLOCK_HEIGHT) * Self::BLOCK_HEIGHT;
+        let end_col = start_col + Self::OFFSET_BLOCK_HEIGHT;
         (start_row, end_row, start_col, end_col)
     }
 
@@ -506,6 +516,7 @@ mod test {
             [2, 8, 7, 4, 1, 9, 6, 3, 5],
             [3, 4, 5, 2, 8, 6, 1, 7, 9],
         ]);
+        assert_eq!(actual.solved_pct(), 100.0);
         assert_eq!(actual.array, expected.array);
     }
 
@@ -536,6 +547,7 @@ mod test {
             [2, 8, 7, 4, 1, 9, 6, 3, 5],
             [3, 4, 5, 2, 8, 6, 1, 7, 9],
         ]);
+        assert_eq!(actual.solved_pct(), 100.0);
         assert_eq!(actual.array, expected.array);
     }
 }
