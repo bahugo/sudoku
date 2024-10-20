@@ -11,6 +11,31 @@ pub enum GroupKind {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct BoardItem {
+    pub value: Option<u8>,
+    candidates: [bool; 9],
+}
+
+impl BoardItem {
+    fn get_candidates(&self) -> Vec<u8> {
+        self.candidates
+            .iter()
+            .enumerate()
+            .filter_map(|(i, value): (usize, &bool)| -> Option<u8> {
+                if !value {
+                    return None;
+                }
+                u8::try_from(i + 1).ok()
+            })
+            .collect()
+    }
+
+    fn remove_candidate(&mut self, value: &u8) {
+        self.candidates[usize::from(value - 1)] = false;
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct Board {
     pub array: [[u8; 9]; 9],
     candidates: [[HashSet<u8>; 9]; 9],
@@ -33,11 +58,10 @@ impl Board {
         }
     }
 
-    fn solved_pct(&self,) -> f64 {
+    fn solved_pct(&self) -> f64 {
         let nb_undefined = self.get_undefined_indexes().len();
         let numerator = (Self::NUMBER_OF_CELLS - nb_undefined) as f64;
         100.0 * numerator / (Self::NUMBER_OF_CELLS as f64)
-
     }
 
     fn get_all_indexes() -> Vec<(usize, usize)> {
@@ -253,8 +277,9 @@ impl Board {
             nb_undefined_values = still_undefined_values;
 
             'traversing_board: for (row, col) in &undefined_indexes {
-
-                if let Some(value) = Board::get_value_if_only_one_candidate(&output.candidates[*row][*col]) {
+                if let Some(value) =
+                    Board::get_value_if_only_one_candidate(&output.candidates[*row][*col])
+                {
                     output.set_value(*row, *col, value);
                     continue;
                 }
@@ -320,10 +345,9 @@ impl Board {
                             output.candidates[*row][*col].remove(&val);
                         }
 
-
-                        if let Some(value) =
-                            Board::get_value_if_only_one_candidate(&output.candidates[*row][*col].clone())
-                        {
+                        if let Some(value) = Board::get_value_if_only_one_candidate(
+                            &output.candidates[*row][*col].clone(),
+                        ) {
                             output.set_value(*row, *col, value);
                             continue 'traversing_board;
                         }
@@ -338,7 +362,25 @@ impl Board {
 #[cfg(test)]
 mod test {
     use super::*;
-    use std::collections::HashSet;
+    use std::{collections::HashSet, vec};
+
+    #[test]
+    fn test_board_item() {
+        let mut board_item = BoardItem {
+            value: None,
+            candidates: [true, false, true, false, false, true, true, true, true],
+        };
+        assert_eq!(board_item.candidates.len(), 9);
+
+        let actual = board_item.get_candidates();
+        assert_eq!(actual.len(), 6);
+        assert_eq!(actual, vec![1, 3, 6, 7, 8, 9]);
+
+        board_item.remove_candidate(&6);
+        let actual = board_item.get_candidates();
+
+        assert_eq!(actual, vec![1, 3, 7, 8, 9]);
+    }
 
     #[rustfmt::skip]
     #[test]
