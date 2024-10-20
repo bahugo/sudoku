@@ -17,6 +17,22 @@ pub struct BoardItem {
 }
 
 impl BoardItem {
+    pub fn known(value: u8) -> Self {
+        Self {
+            value: Some(value),
+            candidates: [
+                false, false, false, false, false, false, false, false, false,
+            ],
+        }
+    }
+
+    pub fn unknown() -> Self {
+        Self {
+            value: None,
+            candidates: [true, true, true, true, true, true, true, true, true],
+        }
+    }
+
     fn get_candidates(&self) -> Vec<u8> {
         self.candidates
             .iter()
@@ -380,6 +396,17 @@ mod test {
         let actual = board_item.get_candidates();
 
         assert_eq!(actual, vec![1, 3, 7, 8, 9]);
+
+        let known_item = BoardItem::known(2);
+        assert_eq!(known_item.value, Some(2));
+        assert_eq!(known_item.get_candidates(), vec![]);
+
+        let unknown_item = BoardItem::unknown();
+        assert_eq!(unknown_item.value, None);
+        assert_eq!(
+            unknown_item.get_candidates(),
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9]
+        );
     }
 
     #[rustfmt::skip]
