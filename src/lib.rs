@@ -10,7 +10,7 @@ pub enum GroupKind {
     All,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct BoardItem {
     pub value: Option<u8>,
     candidates: [bool; 9],
@@ -446,18 +446,18 @@ mod test {
     #[test]
     fn test_set_methods() {
         let mut input = Board::new([
-            [5, 3, 0, 0, 7, 0, 0, 0, 0],
-            [6, 0, 0, 1, 9, 5, 0, 0, 0],
-            [0, 9, 8, 0, 0, 0, 0, 6, 0],
-            [8, 0, 0, 0, 6, 0, 0, 0, 3],
-            [4, 0, 0, 8, 0, 3, 0, 0, 1],
-            [7, 0, 0, 0, 2, 0, 0, 0, 6],
-            [0, 6, 0, 0, 0, 0, 2, 8, 0],
-            [0, 0, 0, 4, 1, 9, 0, 0, 5],
-            [0, 0, 0, 0, 8, 0, 0, 7, 9],
+            [BoardItem::known(5), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+            [BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1), BoardItem::known(9), BoardItem::known(5), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+            [BoardItem::unknown(), BoardItem::known(9), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown()],
+            [BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(3)],
+            [BoardItem::known(4), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1)],
+            [BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(2), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6)],
+            [BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(2), BoardItem::known(8), BoardItem::unknown()],
+            [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(5)],
+            [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)],
         ]);
         input.set_value(0, 2, 9);
-        let actual = input.array[0][2];
+        let actual = input.array[0][2].value.unwrap();
         assert_eq!(actual, 9);
     }
 
@@ -466,32 +466,32 @@ mod test {
     fn test_access_methods() {
         let input = Board::new(
             [
-                [5, 3, 0, 0, 7, 0, 0, 0, 0],
-                [6, 0, 0, 1, 9, 5, 0, 0, 0],
-                [0, 9, 8, 0, 0, 0, 0, 6, 0],
-                [8, 0, 0, 0, 6, 0, 0, 0, 3],
-                [4, 0, 0, 8, 0, 3, 0, 0, 1],
-                [7, 0, 0, 0, 2, 0, 0, 0, 6],
-                [0, 6, 0, 0, 0, 0, 2, 8, 0],
-                [0, 0, 0, 4, 1, 9, 0, 0, 5],
-                [0, 0, 0, 0, 8, 0, 0, 7, 9]
+                [BoardItem::known(5), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+                [BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1), BoardItem::known(9), BoardItem::known(5), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+                [BoardItem::unknown(), BoardItem::known(9), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown()],
+                [BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(3)],
+                [BoardItem::known(4), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1)],
+                [BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(2), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6)],
+                [BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(2), BoardItem::known(8), BoardItem::unknown()],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(5)],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)]
             ],
         );
 
         let actual = input.get_row(0);
-        assert_eq!(actual, [5, 3, 0, 0, 7, 0, 0, 0, 0]);
+        assert_eq!(actual, [BoardItem::known(5), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()]);
         let actual = input.get_row(2);
-        assert_eq!(actual, [0, 9, 8, 0, 0, 0, 0, 6, 0]);
-        let actual = input.get_col(0);
-        assert_eq!(actual, [5, 6, 0, 8, 4, 7, 0, 0, 0]);
-        let actual = input.get_col(8);
-        assert_eq!(actual, [0, 0, 0, 3, 1, 6, 0, 5, 9]);
-        let actual = input.get_block(0, 0);
-        assert_eq!(actual, [5, 3, 0, 6, 0, 0, 0, 9, 8]);
-        let actual = input.get_block(3, 0);
-        assert_eq!(actual, [8, 0, 0, 4, 0, 0, 7, 0, 0]);
-        let actual = input.get_block(3, 3);
-        assert_eq!(actual, [0, 6, 0, 8, 0, 3, 0, 2, 0]);
+        assert_eq!(actual, [BoardItem::unknown(), BoardItem::known(9), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown()]);
+        let actual: Vec<BoardItem> = input.get_col(0).into_iter().cloned().collect();
+        assert_eq!(actual, [BoardItem::known(5), BoardItem::known(6), BoardItem::unknown(), BoardItem::known(8), BoardItem::known(4), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()]);
+        let actual: Vec<BoardItem> = input.get_col(8).into_iter().cloned().collect();
+        assert_eq!(actual, [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(3), BoardItem::known(1), BoardItem::known(6), BoardItem::unknown(), BoardItem::known(5), BoardItem::known(9)]);
+        let actual: Vec<BoardItem> = input.get_block(0, 0).into_iter().cloned().collect();
+        assert_eq!(actual, [BoardItem::known(5), BoardItem::known(3), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(9), BoardItem::known(8)]);
+        let actual: Vec<BoardItem> = input.get_block(3, 0).into_iter().cloned().collect();
+        assert_eq!(actual, [BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown()]);
+        let actual: Vec<BoardItem> = input.get_block(3, 3).into_iter().cloned().collect();
+        assert_eq!(actual, [BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::known(2), BoardItem::unknown()]);
         let actual = input.evaluate_candidate_values(3, 3);
         assert_eq!(actual, HashSet::from([5, 7, 9]));
         let actual = input.evaluate_candidate_values(7, 8);
@@ -516,15 +516,15 @@ mod test {
     fn test_neighbor_indexes_methods() {
         let input = Board::new(
             [
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,],
-                [0, 0, 0, 0, 0, 0, 0, 0, 0,]
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),],
+                [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(),]
             ],
         );
 
@@ -564,29 +564,29 @@ mod test {
     #[test]
     fn test_01() {
         let input = Board::new([
-            [5, 3, 0, 0, 7, 0, 0, 0, 0],
-            [6, 0, 0, 1, 9, 5, 0, 0, 0],
-            [0, 9, 8, 0, 0, 0, 0, 6, 0],
-            [8, 0, 0, 0, 6, 0, 0, 0, 3],
-            [4, 0, 0, 8, 0, 3, 0, 0, 1],
-            [7, 0, 0, 0, 2, 0, 0, 0, 6],
-            [0, 6, 0, 0, 0, 0, 2, 8, 0],
-            [0, 0, 0, 4, 1, 9, 0, 0, 5],
-            [0, 0, 0, 0, 8, 0, 0, 7, 9],
+            [BoardItem::known(5), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+            [BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1), BoardItem::known(9), BoardItem::known(5), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+            [BoardItem::unknown(), BoardItem::known(9), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown()],
+            [BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(3)],
+            [BoardItem::known(4), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1)],
+            [BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(2), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6)],
+            [BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(2), BoardItem::known(8), BoardItem::unknown()],
+            [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(5)],
+            [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)],
         ]);
 
         let actual = input.solve_naive_implementation();
 
         let expected = Board::new([
-            [5, 3, 4, 6, 7, 8, 9, 1, 2],
-            [6, 7, 2, 1, 9, 5, 3, 4, 8],
-            [1, 9, 8, 3, 4, 2, 5, 6, 7],
-            [8, 5, 9, 7, 6, 1, 4, 2, 3],
-            [4, 2, 6, 8, 5, 3, 7, 9, 1],
-            [7, 1, 3, 9, 2, 4, 8, 5, 6],
-            [9, 6, 1, 5, 3, 7, 2, 8, 4],
-            [2, 8, 7, 4, 1, 9, 6, 3, 5],
-            [3, 4, 5, 2, 8, 6, 1, 7, 9],
+            [BoardItem::known(5), BoardItem::known(3), BoardItem::known(4), BoardItem::known(6), BoardItem::known(7), BoardItem::known(8), BoardItem::known(9), BoardItem::known(1), BoardItem::known(2)],
+            [BoardItem::known(6), BoardItem::known(7), BoardItem::known(2), BoardItem::known(1), BoardItem::known(9), BoardItem::known(5), BoardItem::known(3), BoardItem::known(4), BoardItem::known(8)],
+            [BoardItem::known(1), BoardItem::known(9), BoardItem::known(8), BoardItem::known(3), BoardItem::known(4), BoardItem::known(2), BoardItem::known(5), BoardItem::known(6), BoardItem::known(7)],
+            [BoardItem::known(8), BoardItem::known(5), BoardItem::known(9), BoardItem::known(7), BoardItem::known(6), BoardItem::known(1), BoardItem::known(4), BoardItem::known(2), BoardItem::known(3)],
+            [BoardItem::known(4), BoardItem::known(2), BoardItem::known(6), BoardItem::known(8), BoardItem::known(5), BoardItem::known(3), BoardItem::known(7), BoardItem::known(9), BoardItem::known(1)],
+            [BoardItem::known(7), BoardItem::known(1), BoardItem::known(3), BoardItem::known(9), BoardItem::known(2), BoardItem::known(4), BoardItem::known(8), BoardItem::known(5), BoardItem::known(6)],
+            [BoardItem::known(9), BoardItem::known(6), BoardItem::known(1), BoardItem::known(5), BoardItem::known(3), BoardItem::known(7), BoardItem::known(2), BoardItem::known(8), BoardItem::known(4)],
+            [BoardItem::known(2), BoardItem::known(8), BoardItem::known(7), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::known(6), BoardItem::known(3), BoardItem::known(5)],
+            [BoardItem::known(3), BoardItem::known(4), BoardItem::known(5), BoardItem::known(2), BoardItem::known(8), BoardItem::known(6), BoardItem::known(1), BoardItem::known(7), BoardItem::known(9)],
         ]);
         assert_eq!(actual.solved_pct(), 100.0);
         assert_eq!(actual.array, expected.array);
@@ -595,29 +595,29 @@ mod test {
     #[test]
     fn test_02() {
         let input = Board::new([
-            [0, 3, 0, 0, 7, 0, 0, 0, 0],
-            [6, 0, 0, 1, 9, 5, 0, 0, 0],
-            [0, 9, 8, 0, 0, 0, 0, 6, 0],
-            [8, 0, 0, 0, 6, 0, 0, 0, 3],
-            [4, 0, 0, 8, 0, 3, 0, 0, 1],
-            [7, 0, 0, 0, 0, 0, 0, 0, 6],
-            [0, 6, 0, 0, 0, 0, 2, 8, 0],
-            [0, 0, 0, 4, 1, 9, 0, 0, 5],
-            [0, 0, 0, 0, 8, 0, 0, 7, 9],
+            [BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+            [BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1), BoardItem::known(9), BoardItem::known(5), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
+            [BoardItem::unknown(), BoardItem::known(9), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown()],
+            [BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(3)],
+            [BoardItem::known(4), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(1)],
+            [BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6)],
+            [BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(2), BoardItem::known(8), BoardItem::unknown()],
+            [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(5)],
+            [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)],
         ]);
 
         let actual = input.solve_naive_implementation();
 
         let expected = Board::new([
-            [5, 3, 4, 6, 7, 8, 9, 1, 2],
-            [6, 7, 2, 1, 9, 5, 3, 4, 8],
-            [1, 9, 8, 3, 4, 2, 5, 6, 7],
-            [8, 5, 9, 7, 6, 1, 4, 2, 3],
-            [4, 2, 6, 8, 5, 3, 7, 9, 1],
-            [7, 1, 3, 9, 2, 4, 8, 5, 6],
-            [9, 6, 1, 5, 3, 7, 2, 8, 4],
-            [2, 8, 7, 4, 1, 9, 6, 3, 5],
-            [3, 4, 5, 2, 8, 6, 1, 7, 9],
+            [BoardItem::known(5), BoardItem::known(3), BoardItem::known(4), BoardItem::known(6), BoardItem::known(7), BoardItem::known(8), BoardItem::known(9), BoardItem::known(1), BoardItem::known(2)],
+            [BoardItem::known(6), BoardItem::known(7), BoardItem::known(2), BoardItem::known(1), BoardItem::known(9), BoardItem::known(5), BoardItem::known(3), BoardItem::known(4), BoardItem::known(8)],
+            [BoardItem::known(1), BoardItem::known(9), BoardItem::known(8), BoardItem::known(3), BoardItem::known(4), BoardItem::known(2), BoardItem::known(5), BoardItem::known(6), BoardItem::known(7)],
+            [BoardItem::known(8), BoardItem::known(5), BoardItem::known(9), BoardItem::known(7), BoardItem::known(6), BoardItem::known(1), BoardItem::known(4), BoardItem::known(2), BoardItem::known(3)],
+            [BoardItem::known(4), BoardItem::known(2), BoardItem::known(6), BoardItem::known(8), BoardItem::known(5), BoardItem::known(3), BoardItem::known(7), BoardItem::known(9), BoardItem::known(1)],
+            [BoardItem::known(7), BoardItem::known(1), BoardItem::known(3), BoardItem::known(9), BoardItem::known(2), BoardItem::known(4), BoardItem::known(8), BoardItem::known(5), BoardItem::known(6)],
+            [BoardItem::known(9), BoardItem::known(6), BoardItem::known(1), BoardItem::known(5), BoardItem::known(3), BoardItem::known(7), BoardItem::known(2), BoardItem::known(8), BoardItem::known(4)],
+            [BoardItem::known(2), BoardItem::known(8), BoardItem::known(7), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::known(6), BoardItem::known(3), BoardItem::known(5)],
+            [BoardItem::known(3), BoardItem::known(4), BoardItem::known(5), BoardItem::known(2), BoardItem::known(8), BoardItem::known(6), BoardItem::known(1), BoardItem::known(7), BoardItem::known(9)],
         ]);
         assert_eq!(actual.solved_pct(), 100.0);
         assert_eq!(actual.array, expected.array);
