@@ -53,7 +53,7 @@ impl BoardItem {
 
 #[derive(Debug, Clone, Default)]
 pub struct Board {
-    pub array: [[u8; 9]; 9],
+    pub array: [[BoardItem; 9]; 9],
     candidates: [[HashSet<u8>; 9]; 9],
 }
 
@@ -67,7 +67,7 @@ impl Board {
     const OFFSET_BLOCK_WIDTH: usize = Self::BLOCK_WIDTH - 1;
     const OFFSET_BLOCK_HEIGHT: usize = Self::BLOCK_HEIGHT - 1;
 
-    pub fn new(array: [[u8; 9]; 9]) -> Self {
+    pub fn new(array: [[BoardItem; 9]; 9]) -> Self {
         Self {
             array,
             ..Default::default()
@@ -90,13 +90,14 @@ impl Board {
         block_indexes
     }
 
-    fn get_row(&self, row: usize) -> Vec<u8> {
+    fn get_row(&self, row: usize) -> Vec<BoardItem> {
         self.array[row].to_vec()
     }
-    fn get_col(&self, col: usize) -> Vec<u8> {
+
+    fn get_col(&self, col: usize) -> Vec<&BoardItem> {
         self.array
-            .into_iter()
-            .map(|row_array| row_array[col])
+            .iter()
+            .map(|row_array| &row_array[col])
             .collect()
     }
 
@@ -108,10 +109,10 @@ impl Board {
         (start_row, end_row, start_col, end_col)
     }
 
-    fn get_block(&self, row: usize, col: usize) -> Vec<u8> {
+    fn get_block(&self, row: usize, col: usize) -> Vec<&BoardItem> {
         let (start_row, end_row, start_col, end_col) = Self::get_block_bounds_from_index(row, col);
         self.array
-            .into_iter()
+            .iter()
             .enumerate()
             .filter_map(|(i_row, row_array)| {
                 if i_row < start_row || i_row > end_row {
@@ -119,7 +120,7 @@ impl Board {
                 }
                 Some(
                     row_array
-                        .into_iter()
+                        .iter()
                         .enumerate()
                         .filter_map(|(i_col, val)| {
                             if i_col < start_col || i_col > end_col {
@@ -127,7 +128,7 @@ impl Board {
                             }
                             Some(val)
                         })
-                        .collect::<Vec<u8>>(),
+                        .collect::<Vec<&BoardItem>>(),
                 )
             })
             .flatten()
@@ -190,7 +191,7 @@ impl Board {
         let neighbor_values: HashSet<u8> = HashSet::from_iter(
             neighbor_indexes
                 .iter()
-                .map(|(i_row, i_col)| self.array[*i_row][*i_col]),
+                .filter_map(|(i_row, i_col)| self.array[*i_row][*i_col].value),
         );
         candidate_values
             .difference(&neighbor_values)
@@ -202,18 +203,20 @@ impl Board {
         let output: Vec<(usize, usize)> = Self::get_all_indexes()
             .iter()
             .filter_map(|(i_row, i_col)| {
-                let val = self.array[*i_row][*i_col];
-                if val != 0 {
-                    return None;
+                let val = self.array[*i_row][*i_col].value;
+                if val.is_some() {
+                    Some((*i_row, *i_col))
+                } else {
+                    None
                 }
-                Some((*i_row, *i_col))
+
             })
             .collect();
         output
     }
 
     fn set_value(&mut self, row: usize, col: usize, value: u8) {
-        self.array[row][col] = value;
+        self.array[row][col].value = Some(value);
         self.candidates[row][col] = HashSet::from([value]);
         self.get_row_neighbor_indexes(row, col)
             .iter()
