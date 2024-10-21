@@ -63,7 +63,6 @@ impl BoardItem {
 #[derive(Debug, Clone, Default)]
 pub struct Board {
     pub array: [[BoardItem; 9]; 9],
-    candidates: [[HashSet<u8>; 9]; 9],
 }
 
 impl Board {
