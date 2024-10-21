@@ -90,8 +90,8 @@ impl Board {
         block_indexes
     }
 
-    fn get_row(&self, row: usize) -> Vec<BoardItem> {
-        self.array[row].to_vec()
+    fn get_row(&self, row: usize) -> Vec<&BoardItem> {
+        self.array[row].iter().collect()
     }
 
     fn get_col(&self, col: usize) -> Vec<&BoardItem> {
@@ -204,7 +204,7 @@ impl Board {
             .iter()
             .filter_map(|(i_row, i_col)| {
                 let val = self.array[*i_row][*i_col].value;
-                if val.is_some() {
+                if val.is_none() {
                     Some((*i_row, *i_col))
                 } else {
                     None
@@ -478,9 +478,9 @@ mod test {
             ],
         );
 
-        let actual = input.get_row(0);
+        let actual: Vec<BoardItem> = input.get_row(0).into_iter().cloned().collect();
         assert_eq!(actual, [BoardItem::known(5), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()]);
-        let actual = input.get_row(2);
+        let actual: Vec<BoardItem> = input.get_row(2).into_iter().cloned().collect();
         assert_eq!(actual, [BoardItem::unknown(), BoardItem::known(9), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown()]);
         let actual: Vec<BoardItem> = input.get_col(0).into_iter().cloned().collect();
         assert_eq!(actual, [BoardItem::known(5), BoardItem::known(6), BoardItem::unknown(), BoardItem::known(8), BoardItem::known(4), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()]);
