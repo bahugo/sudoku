@@ -51,11 +51,13 @@ impl BoardItem {
     }
 
     fn set_value(&mut self, value: u8) {
-        self.candidates = [false, false, false, false, false, false, false, false, false, ];
+        self.candidates = [
+            false, false, false, false, false, false, false, false, false,
+        ];
         self.value = Some(value);
     }
 
-    fn is_solved(&self) -> bool{
+    fn is_solved(&self) -> bool {
         self.value.is_some()
     }
 }
@@ -103,10 +105,7 @@ impl Board {
     }
 
     fn get_col(&self, col: usize) -> Vec<&BoardItem> {
-        self.array
-            .iter()
-            .map(|row_array| &row_array[col])
-            .collect()
+        self.array.iter().map(|row_array| &row_array[col]).collect()
     }
 
     pub fn get_block_bounds_from_index(row: usize, col: usize) -> (usize, usize, usize, usize) {
@@ -184,26 +183,22 @@ impl Board {
 
     fn update_all_candidates(&mut self) {
         for (row, col) in Board::get_all_indexes() {
-            self.update_candidates(row,col);
+            self.update_candidates(row, col);
         }
     }
-    fn update_candidates(&mut self, row: usize, col: usize){
+    fn update_candidates(&mut self, row: usize, col: usize) {
         let neighbor_indexes = self
             .get_row_neighbor_indexes(row, col)
             .into_iter()
             .chain(self.get_col_neighbor_indexes(row, col))
             .chain(self.get_block_neighbor_indexes(row, col))
             .collect::<Vec<(usize, usize)>>();
-            neighbor_indexes
-                .iter()
-                .for_each(|(i_row, i_col)| {
-                let val = self.array[*i_row][*i_col].value;
-                if let Some(val) = val{
-                    self.array[row][col].remove_candidate(val);
-                }
+        neighbor_indexes.iter().for_each(|(i_row, i_col)| {
+            let val = self.array[*i_row][*i_col].value;
+            if let Some(val) = val {
+                self.array[row][col].remove_candidate(val);
             }
-            )
-        ;
+        });
     }
 
     fn evaluate_candidate_values(&self, row: usize, col: usize) -> HashSet<u8> {
@@ -224,7 +219,6 @@ impl Board {
             .difference(&neighbor_values)
             .cloned()
             .collect()
-
     }
 
     fn get_undefined_indexes(&self) -> Vec<(usize, usize)> {
@@ -237,7 +231,6 @@ impl Board {
                 } else {
                     None
                 }
-
             })
             .collect();
         output
@@ -319,9 +312,9 @@ impl Board {
             nb_undefined_values = still_undefined_values;
 
             'traversing_board: for (row, col) in &undefined_indexes {
-                if let Some(value) =
-                    Board::get_value_if_only_one_candidate(&output.array[*row][*col].get_candidates())
-                {
+                if let Some(value) = Board::get_value_if_only_one_candidate(
+                    &output.array[*row][*col].get_candidates(),
+                ) {
                     output.set_value(*row, *col, value);
                     continue;
                 }
@@ -466,6 +459,7 @@ mod test {
         ]);
     }
 
+    #[rustfmt::skip]
     #[test]
     fn test_set_methods() {
         let mut input = Board::new([
@@ -584,6 +578,7 @@ mod test {
         assert_eq!(actual, None);
     }
 
+    #[rustfmt::skip]
     #[test]
     fn test_01() {
         let input = Board::new([
@@ -615,6 +610,7 @@ mod test {
         assert_eq!(actual.array, expected.array);
     }
 
+    #[rustfmt::skip]
     #[test]
     fn test_02() {
         let input = Board::new([
