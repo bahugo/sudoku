@@ -201,32 +201,11 @@ impl Board {
         });
     }
 
-    fn evaluate_candidate_values(&self, row: usize, col: usize) -> HashSet<u8> {
-        let candidate_values: HashSet<u8> = HashSet::from([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        let neighbor_indexes = self
-            .get_row_neighbor_indexes(row, col)
-            .into_iter()
-            .chain(self.get_col_neighbor_indexes(row, col))
-            .chain(self.get_block_neighbor_indexes(row, col))
-            .collect::<Vec<(usize, usize)>>();
-        let neighbor_values: HashSet<u8> = HashSet::from_iter(
-            neighbor_indexes
-                .iter()
-                .filter_map(|(i_row, i_col)| self.array[*i_row][*i_col].value),
-        );
-
-        candidate_values
-            .difference(&neighbor_values)
-            .cloned()
-            .collect()
-    }
-
     fn get_undefined_indexes(&self) -> Vec<(usize, usize)> {
         let output: Vec<(usize, usize)> = Self::get_all_indexes()
             .iter()
             .filter_map(|(i_row, i_col)| {
-                let val = self.array[*i_row][*i_col].value;
-                if val.is_none() {
+                if !self.array[*i_row][*i_col].is_solved() {
                     Some((*i_row, *i_col))
                 } else {
                     None
@@ -326,9 +305,9 @@ impl Board {
                         GroupKind::Block => output.get_block_neighbor_indexes(*row, *col),
                         GroupKind::All => todo!(),
                     };
-                    let neighbor_candidate_values: Vec<HashSet<u8>> = neighbor_ids
+                    let neighbor_candidate_values: Vec<Vec<u8>> = neighbor_ids
                         .iter()
-                        .map(|(r, c)| output.evaluate_candidate_values(*r, *c))
+                        .map(|(r, c)| output.array[*r][*c].get_candidates())
                         .collect();
                     let unique_neighbor_values: HashSet<u8> = neighbor_candidate_values
                         .iter()
@@ -347,7 +326,7 @@ impl Board {
                     let mut acc: HashMap<Vec<u8>, usize> = HashMap::new();
                     // let mut val_count = HashMap::new();
                     neighbor_candidate_values.iter().for_each(|x| {
-                        let mut key: Vec<u8> = x.iter().copied().collect();
+                        let mut key: Vec<u8> = x.to_vec();
                         key.sort();
                         if key.is_empty() {
                             return;
@@ -509,10 +488,6 @@ mod test {
         assert_eq!(actual, [BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown()]);
         let actual: Vec<BoardItem> = input.get_block(3, 3).into_iter().cloned().collect();
         assert_eq!(actual, [BoardItem::unknown(), BoardItem::known(6), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::known(2), BoardItem::unknown()]);
-        let actual = input.evaluate_candidate_values(3, 3);
-        assert_eq!(actual, HashSet::from([5, 7, 9]));
-        let actual = input.evaluate_candidate_values(7, 8);
-        assert_eq!(actual, HashSet::from([5]));
         let actual = input.get_undefined_indexes();
         let expected = vec![
             (0,2),(0,3),(0,5),(0,6),(0,7),(0,8),
@@ -638,7 +613,7 @@ mod test {
             [BoardItem::known(2), BoardItem::known(8), BoardItem::known(7), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::known(6), BoardItem::known(3), BoardItem::known(5)],
             [BoardItem::known(3), BoardItem::known(4), BoardItem::known(5), BoardItem::known(2), BoardItem::known(8), BoardItem::known(6), BoardItem::known(1), BoardItem::known(7), BoardItem::known(9)],
         ]);
-        // assert_eq!(actual.solved_pct(), 100.0);
+        assert_eq!(actual.solved_pct(), 100.0);
         assert_eq!(actual.array, expected.array);
     }
 }
