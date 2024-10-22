@@ -239,7 +239,7 @@ impl Board {
 
     fn get_value_if_one_value_is_not_possible_in_neighbors(
         neighbor_values: HashSet<u8>,
-        candidate_values: &Vec<u8>,
+        candidate_values: &[u8],
     ) -> Option<u8> {
         let not_candidate_in_neighbors: Vec<u8> = candidate_values
             .iter()
@@ -253,25 +253,12 @@ impl Board {
         None
     }
 
-    pub fn get_value_if_only_one_candidate(candidate_values: &Vec<u8>) -> Option<u8> {
+    pub fn get_value_if_only_one_candidate(candidate_values: &[u8]) -> Option<u8> {
         if candidate_values.len() != 1 {
             return None;
         }
         let value = *candidate_values.iter().next().unwrap();
         Some(value)
-    }
-
-    pub fn get_value_if_not_candidate_in_neighbors(
-        neighbor_values: HashSet<u8>,
-        candidate_values: &Vec<u8>,
-    ) -> Option<u8> {
-        if let Some(value) = Self::get_value_if_one_value_is_not_possible_in_neighbors(
-            neighbor_values,
-            candidate_values,
-        ) {
-            return Some(value);
-        }
-        None
     }
 
     pub fn solve_naive_implementation(&self) -> Board {
@@ -314,7 +301,7 @@ impl Board {
                         .flat_map(|x| x.clone())
                         .collect();
 
-                    if let Some(value) = Board::get_value_if_not_candidate_in_neighbors(
+                    if let Some(value) = Board::get_value_if_one_value_is_not_possible_in_neighbors(
                         unique_neighbor_values,
                         &output.array[*row][*col].get_candidates(),
                     ) {
