@@ -1,7 +1,9 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt::{Debug, Display},
     ops::Range,
 };
+
 
 pub enum GroupKind {
     Row,
@@ -14,6 +16,24 @@ pub enum GroupKind {
 pub struct BoardItem {
     pub value: Option<u8>,
     candidates: [bool; 9],
+}
+
+impl Display for BoardItem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.value {
+            Some(val) => Display::fmt(&val, f),
+            _ => Display::fmt(
+                &self
+                    .get_candidates()
+                    .iter()
+                    .fold("".to_string(), |acc, val| match acc.is_empty() {
+                        true => format!("{}", val),
+                        false => format!("{},{}", acc, val),
+                    }),
+                f,
+            ),
+        }
+    }
 }
 
 impl BoardItem {
@@ -62,9 +82,42 @@ impl BoardItem {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Board {
     pub array: [[BoardItem; 9]; 9],
+}
+
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut agg: String = String::new();
+        for (i, vals) in self.array.iter().enumerate() {
+            let mut agg_line: String = String::from("|");
+            for (k, val) in vals.iter().enumerate() {
+                agg_line.push_str(format!("|{: ^17}", val).as_str());
+                if (k + 1) % 3 == 0 {
+                    agg_line.push('|');
+                };
+            }
+            agg_line.push('|');
+
+            if i == 0 {
+                agg_line.chars().for_each(|_| {
+                    agg.insert(0, '=');
+                });
+            }
+            agg.push('\n');
+            agg.push_str(agg_line.as_str());
+            agg.push('\n');
+            let line_char = match (i + 1) % 3 == 0 {
+                true => '=',
+                false => '.',
+            };
+            agg_line.chars().for_each(|_| {
+                agg.push(line_char);
+            });
+        }
+        write!(f, "{}", agg)
+    }
 }
 
 impl Board {
@@ -78,13 +131,10 @@ impl Board {
     const OFFSET_BLOCK_HEIGHT: usize = Self::BLOCK_HEIGHT - 1;
 
     pub fn new(array: [[BoardItem; 9]; 9]) -> Self {
-        Self {
-            array,
-            ..Default::default()
-        }
+        Self { array }
     }
 
-    fn solved_pct(&self) -> f64 {
+    pub fn solved_pct(&self) -> f64 {
         let nb_undefined = self.get_undefined_indexes().len();
         let numerator = (Self::NUMBER_OF_CELLS - nb_undefined) as f64;
         100.0 * numerator / (Self::NUMBER_OF_CELLS as f64)
@@ -525,17 +575,17 @@ mod test {
     fn test_get_value_if_one_value_is_not_possible_in_neighbors() {
         let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
             HashSet::from([1, 2, 3]),
-            &vec![1, 2, 3, 4],
+            &[1, 2, 3, 4],
         );
         assert_eq!(actual, Some(4));
         let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
             HashSet::from([1, 2, 3]),
-            &vec![1, 2],
+            &[1, 2],
         );
         assert_eq!(actual, None);
         let actual = Board::get_value_if_one_value_is_not_possible_in_neighbors(
             HashSet::from([1, 2, 3]),
-            &vec![1, 2, 3],
+            &[1, 2, 3],
         );
         assert_eq!(actual, None);
     }
@@ -586,6 +636,7 @@ mod test {
             [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(5)],
             [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)],
         ]);
+        println!("{}", input);
 
         let actual = input.solve_naive_implementation();
 
@@ -600,7 +651,8 @@ mod test {
             [BoardItem::known(2), BoardItem::known(8), BoardItem::known(7), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::known(6), BoardItem::known(3), BoardItem::known(5)],
             [BoardItem::known(3), BoardItem::known(4), BoardItem::known(5), BoardItem::known(2), BoardItem::known(8), BoardItem::known(6), BoardItem::known(1), BoardItem::known(7), BoardItem::known(9)],
         ]);
-        assert_eq!(actual.solved_pct(), 100.0);
-        assert_eq!(actual.array, expected.array);
+        // assert_eq!(actual.solved_pct(), 100.0);
+        // debug_assert_eq!(actual, expected);
+        assert_eq!(actual, expected, "actual \n{} \nexpected\n{}", actual, expected);
     }
 }
