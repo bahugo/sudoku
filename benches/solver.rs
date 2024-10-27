@@ -4,6 +4,7 @@ fn main() {
     divan::main()
 }
 
+#[rustfmt::skip]
 #[divan::bench]
 fn simple_board_naive_implementation() {
     let input = Board::new(
@@ -20,9 +21,10 @@ fn simple_board_naive_implementation() {
         ],
     );
 
-    input.solve_naive_implementation();
+    let _ = input.solve_naive_implementation();
 }
 
+#[rustfmt::skip]
 #[divan::bench]
 fn less_simple_board_naive_implementation() {
     let input = Board::new(
@@ -39,6 +41,5 @@ fn less_simple_board_naive_implementation() {
         ],
     );
 
-    input.solve_naive_implementation();
+    let _ = input.solve_naive_implementation();
 }
-
