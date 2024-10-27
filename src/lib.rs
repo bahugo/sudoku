@@ -4,6 +4,9 @@ use std::{
     ops::Range,
 };
 
+pub mod lib {
+    pub use crate::Board;
+}
 
 pub enum GroupKind {
     Row,
@@ -311,6 +314,45 @@ impl Board {
         Some(value)
     }
 
+    fn purge_candidates_with_naked_pairs(
+        &mut self,
+        row: &usize,
+        col: &usize,
+        neighbor_candidate_values: Vec<Vec<u8>>,
+    ) {
+        // detect naked pairs, triples, etc...
+        // Count neighbor_values occurences
+        let mut acc: HashMap<Vec<u8>, usize> = HashMap::new();
+        neighbor_candidate_values.iter().for_each(|x| {
+            let mut key: Vec<u8> = x.to_vec();
+            if key.is_empty() {
+                return;
+            }
+            key.sort();
+            if let Some(res) = acc.get_mut(&key) {
+                *res += 1;
+            } else {
+                acc.insert(key, 1);
+            }
+        });
+        let to_remove_from_candidates: HashSet<u8> = acc
+            .iter()
+            .filter_map(|(values, count)| {
+                if (*values).len() != *count {
+                    return None;
+                }
+                Some(values.clone())
+            })
+            .flatten()
+            .collect();
+
+        if !to_remove_from_candidates.is_empty() {
+            for val in to_remove_from_candidates {
+                self.array[*row][*col].remove_candidate(val);
+            }
+        }
+    }
+
     pub fn solve_naive_implementation(&self) -> Board {
         let mut output = Self::new(self.array.to_owned());
         let mut nb_undefined_values: usize = 0;
@@ -359,50 +401,7 @@ impl Board {
                         continue 'traversing_board;
                     }
 
-                    // Count neighbor_values occurences
-                    let mut acc: HashMap<Vec<u8>, usize> = HashMap::new();
-                    // let mut val_count = HashMap::new();
-                    neighbor_candidate_values.iter().for_each(|x| {
-                        let mut key: Vec<u8> = x.to_vec();
-                        key.sort();
-                        if key.is_empty() {
-                            return;
-                        }
-                        if let Some(res) = acc.get_mut(&key) {
-                            *res += 1;
-                        } else {
-                            acc.insert(key, 1);
-                        }
-                    });
-                    let to_remove_from_candidates: HashSet<u8> = acc
-                        .iter()
-                        .filter_map(|(values, count)| {
-                            if (*values).len() != *count {
-                                return None;
-                            }
-                            Some(values.clone())
-                        })
-                        .flatten()
-                        .collect();
-                    if !to_remove_from_candidates.is_empty() {
-                        // println!("row {} col {}", row, col);
-                        // println!("board {:?}", output);
-                        // println!("candidate_values {:?}", candidate_values);
-                        // println!("neighbor_candidate_values {:?}", neighbor_candidate_values);
-                        // println!("counts {:?}", acc);
-                        // println!("to_remove_from_candidates {:?}", to_remove_from_canditates);
-
-                        for val in to_remove_from_candidates {
-                            output.array[*row][*col].remove_candidate(val);
-                        }
-
-                        if let Some(value) = Board::get_value_if_only_one_candidate(
-                            &output.array[*row][*col].get_candidates(),
-                        ) {
-                            output.set_value(*row, *col, value);
-                            continue 'traversing_board;
-                        }
-                    }
+                    output.purge_candidates_with_naked_pairs(row, col, neighbor_candidate_values)
                 }
             }
         }
@@ -636,7 +635,6 @@ mod test {
             [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(4), BoardItem::known(1), BoardItem::known(9), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(5)],
             [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)],
         ]);
-        println!("{}", input);
 
         let actual = input.solve_naive_implementation();
 
