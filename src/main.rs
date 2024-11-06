@@ -1,17 +1,18 @@
+use std::cmp::min;
 use std::io;
 
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::palette::tailwind;
-use ratatui::widgets::{BorderType, Borders, Cell, HighlightSpacing, Row, Table};
+use ratatui::widgets::{BorderType, Borders};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{self, Color, Modifier, Style, Stylize},
     symbols::border,
-    text::{Line, Text},
-    widgets::{Block, Paragraph, TableState, Widget},
+    text::Line,
+    widgets::{Block, Paragraph, TableState},
     DefaultTerminal, Frame,
 };
 use unicode_width::UnicodeWidthStr;
@@ -30,6 +31,8 @@ pub struct App {
     state: TableState,
     colors: TableColors,
     longest_item_len: u16,
+    rows_nb: usize,
+    columns_nb: usize,
     exit: bool,
 }
 
@@ -94,10 +97,12 @@ impl App {
         ]);
 
         Self {
-            state: TableState::default().with_selected(0),
+            state: TableState::default().with_selected_cell((0, 0)),
             longest_item_len: constraint_len_calculator(&board),
             colors: TableColors::new(&PALETTES[0]),
             board,
+            rows_nb: 9,
+            columns_nb: 9,
             exit: false,
         }
     }
@@ -113,13 +118,13 @@ impl App {
     fn draw(&mut self, frame: &mut Frame) {
         let title = Line::from(" Sudoku App ".bold());
         let instructions = Line::from(vec![
-            " Move left ".into(),
+            " Move left (h)".into(),
             "<Left>".blue().bold(),
-            " Move Right ".into(),
+            " Move Right (l)".into(),
             "<Right>".blue().bold(),
-            " Move Up ".into(),
+            " Move Up (k)".into(),
             "<Up>".blue().bold(),
-            " Move Down ".into(),
+            " Move Down (j)".into(),
             "<Down>".blue().bold(),
             " Solve ".into(),
             "<S> ".green().bold(),
@@ -189,9 +194,9 @@ impl App {
                     .style(Style::default().bg(Color::Black).fg(
                         // cell  border color
                         if self.is_selected(r, c) {
-                            Color::Yellow
+                            self.colors.selected_cell_style_fg
                         } else if self.is_active(r, c) {
-                            Color::Cyan
+                            todo!()
                         } else {
                             Color::White
                         },
@@ -222,6 +227,10 @@ impl App {
         match key_event.code {
             KeyCode::Char('q') => self.exit(),
             KeyCode::Char('s') => self.solve(),
+            KeyCode::Char('h') => self.move_left(),
+            KeyCode::Char('l') => self.move_right(),
+            KeyCode::Char('k') => self.move_up(),
+            KeyCode::Char('j') => self.move_down(),
             KeyCode::Left => self.move_left(),
             KeyCode::Right => self.move_right(),
             KeyCode::Up => self.move_up(),
@@ -235,20 +244,38 @@ impl App {
         let board = self.board.solve_naive_implementation().unwrap();
         self.board = board;
     }
+
     fn exit(&mut self) {
         self.exit = true;
     }
+
     fn move_left(&mut self) {
-        todo!()
+        let selected_cell = self.state.selected_cell().unwrap_or((0, 0));
+        if selected_cell.1 == 0 {
+            return;
+        }
+        let selected_col = selected_cell.1 - 1;
+        self.state.select_cell(Some((selected_cell.0, selected_col)));
     }
+
     fn move_right(&mut self) {
-        todo!()
+        let selected_cell = self.state.selected_cell().unwrap_or((0, 0));
+        let selected_col = min(selected_cell.1 + 1, self.columns_nb - 1);
+        self.state.select_cell(Some((selected_cell.0, selected_col)));
     }
+
     fn move_up(&mut self) {
-        todo!()
+        let selected_cell = self.state.selected_cell().unwrap_or((0, 0));
+        if selected_cell.0 == 0 {
+            return;
+        }
+        let selected_row = selected_cell.0 - 1;
+        self.state.select_cell(Some((selected_row, selected_cell.1)));
     }
     fn move_down(&mut self) {
-        todo!()
+        let selected_cell = self.state.selected_cell().unwrap_or((0, 0));
+        let selected_row = min(selected_cell.0 + 1, self.rows_nb - 1);
+        self.state.select_cell(Some((selected_row, selected_cell.1)));
     }
 
     fn is_active(&self, row: usize, col: usize) -> bool {
@@ -257,8 +284,8 @@ impl App {
     }
 
     fn is_selected(&self, row: usize, col: usize) -> bool {
-        //FIXME
-        row == 0 && col ==0
+        row == self.state.selected().unwrap_or(0)
+            && col == self.state.selected_column().unwrap_or(0)
     }
 }
 // ANCHOR_END: impl App
