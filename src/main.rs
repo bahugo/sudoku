@@ -3,7 +3,7 @@ use std::io;
 
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 
-use ratatui::layout::{Constraint, Direction, Layout};
+use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout};
 use ratatui::style::palette::tailwind;
 use ratatui::widgets::{BorderType, Borders};
 use ratatui::{
@@ -38,10 +38,11 @@ pub struct App {
 
 struct TableColors {
     buffer_bg: Color,
-    row_fg: Color,
-    selected_row_style_fg: Color,
-    selected_column_style_fg: Color,
+    cell_fg: Color,
+    cell_bg: Color,
     selected_cell_style_fg: Color,
+    defined_cell_bg: Color,
+    defined_cell_style_fg: Color,
     normal_row_color: Color,
     alt_row_color: Color,
     footer_border_color: Color,
@@ -50,11 +51,12 @@ struct TableColors {
 impl TableColors {
     const fn new(color: &tailwind::Palette) -> Self {
         Self {
-            buffer_bg: tailwind::SLATE.c950,
-            row_fg: tailwind::SLATE.c200,
-            selected_row_style_fg: color.c400,
-            selected_column_style_fg: color.c400,
+            buffer_bg: tailwind::SLATE.c900,
+            cell_fg: tailwind::SLATE.c300,
+            cell_bg: tailwind::SLATE.c900,
+            defined_cell_bg: tailwind::SLATE.c950,
             selected_cell_style_fg: color.c600,
+            defined_cell_style_fg: tailwind::INDIGO.c300,
             normal_row_color: tailwind::SLATE.c950,
             alt_row_color: tailwind::SLATE.c900,
             footer_border_color: color.c400,
@@ -68,16 +70,6 @@ fn main() -> io::Result<()> {
     let app_result = App::new().run(&mut terminal);
     ratatui::restore();
     app_result
-}
-
-fn constraint_len_calculator(board: &Board) -> u16 {
-    board
-        .array
-        .iter()
-        .flat_map(|x| x.iter().map(|y| format!("{}", y)))
-        .map(|v| UnicodeWidthStr::width(v.as_str()).try_into().unwrap_or(1))
-        .max()
-        .unwrap_or(1)
 }
 
 // ANCHOR: impl App
@@ -98,8 +90,8 @@ impl App {
 
         Self {
             state: TableState::default().with_selected_cell((0, 0)),
-            longest_item_len: constraint_len_calculator(&board),
-            colors: TableColors::new(&PALETTES[0]),
+            longest_item_len: App::constraint_len_calculator(&board),
+            colors: TableColors::new(&PALETTES[2]),
             board,
             rows_nb: 9,
             columns_nb: 9,
@@ -113,6 +105,16 @@ impl App {
             self.handle_events()?;
         }
         Ok(())
+    }
+
+    fn constraint_len_calculator(board: &Board) -> u16 {
+        board
+            .array
+            .iter()
+            .flat_map(|x| x.iter().map(App::get_display_value_for_boarditem))
+            .map(|v| UnicodeWidthStr::width(v.as_str()).try_into().unwrap_or(1))
+            .max()
+            .unwrap_or(1)
     }
 
     fn draw(&mut self, frame: &mut Frame) {
@@ -142,69 +144,90 @@ impl App {
 
     fn render_board(&mut self, frame: &mut Frame, area: Rect) {
         const CELL_HEIGHT: u16 = 3;
-        let CELL_WIDTH: u16 = self.longest_item_len;
-        let rows_count = self.board.array.len();
-        let cols_count = self.board.array[0].len();
-        let row_constraints = std::iter::repeat(Constraint::Length(CELL_HEIGHT))
-            .take(rows_count)
-            .collect::<Vec<_>>();
-        let col_constraints = std::iter::repeat(Constraint::Length(CELL_WIDTH))
-            .take(cols_count)
-            .collect::<Vec<_>>();
+        let cell_width: u16 = self.longest_item_len + 2;
+        let row_constraints = Constraint::from_lengths([
+            CELL_HEIGHT,
+            CELL_HEIGHT,
+            CELL_HEIGHT,
+            1,
+            CELL_HEIGHT,
+            CELL_HEIGHT,
+            CELL_HEIGHT,
+            1,
+            CELL_HEIGHT,
+            CELL_HEIGHT,
+            CELL_HEIGHT,
+        ]);
+        let col_constraints = Constraint::from_lengths([
+            cell_width, cell_width, cell_width,
+            1,
+            cell_width, cell_width, cell_width,
+            1,
+            cell_width, cell_width, cell_width,
+        ]);
 
         let row_rects = Layout::default()
+            .flex(Flex::Center)
             .direction(Direction::Vertical)
-            .vertical_margin(1)
+            .vertical_margin(0)
             .horizontal_margin(0)
             .constraints(row_constraints)
             .split(area);
 
-        for (r, row_rect) in row_rects.iter().enumerate() {
+        for (layout_r, row_rect) in row_rects.iter().enumerate() {
+            if layout_r == 3 || layout_r == 7 {
+                continue;
+            }
+            let r = if layout_r < 3 {
+                layout_r
+            } else if layout_r < 7 {
+                layout_r - 1
+            } else {
+                layout_r - 2
+            };
+
             let col_rects = Layout::default()
+                .flex(Flex::Center)
                 .direction(Direction::Horizontal)
                 .vertical_margin(0)
-                .horizontal_margin(1)
+                .horizontal_margin(0)
                 .constraints(col_constraints.clone())
                 .split(*row_rect);
 
-            for (c, cell_rect) in col_rects.iter().enumerate() {
-                let item = &self.board.array[r][c];
-
-                let single_row_text =
-                    format!("{:^length$}", item, length = usize::from(CELL_WIDTH - 1));
-                let pad_line = " ".repeat(usize::from(CELL_WIDTH));
-
-                // 1 line for the text, 1 line each for the top and bottom of the cell == 3 lines
-                // that are not eligible for padding
-                let num_pad_lines = usize::from(CELL_HEIGHT.checked_sub(3).unwrap_or_default());
-
-                // text is:
-                //   pad with half the pad lines budget
-                //   the interesting text
-                //   pad with half the pad lines budget
-                //   join with newlines
-                let text = std::iter::repeat(pad_line.clone())
-                    .take(num_pad_lines / 2)
-                    .chain(std::iter::once(single_row_text.clone()))
-                    .chain(std::iter::repeat(pad_line).take(num_pad_lines / 2))
-                    .collect::<Vec<_>>()
-                    .join("\n");
+            for (layout_c, cell_rect) in col_rects.iter().enumerate() {
+                if layout_c == 3 || layout_c == 7 {
+                    continue;
+                }
+                let c = if layout_c < 3 {
+                    layout_c
+                } else if layout_c < 7 {
+                    layout_c - 1
+                } else {
+                    layout_c - 2
+                };
+                let single_row_text = self.get_display_value(r, c);
+                let cell_bg = if self.is_undefined(r, c) {
+                    self.colors.cell_bg
+                } else {
+                    self.colors.defined_cell_bg
+                };
+                let cell_fg = if self.is_selected(r, c) {
+                    self.colors.selected_cell_style_fg
+                } else if self.is_undefined(r, c) {
+                    self.colors.defined_cell_style_fg
+                } else {
+                    self.colors.cell_fg
+                };
                 let block = Block::default()
                     .borders(Borders::ALL)
-                    .style(Style::default().bg(Color::Black).fg(
-                        // cell  border color
-                        if self.is_selected(r, c) {
-                            self.colors.selected_cell_style_fg
-                        } else if self.is_active(r, c) {
-                            todo!()
-                        } else {
-                            Color::White
-                        },
-                    ))
-                    .border_type(BorderType::Rounded);
+                    .style(Style::default().bg(cell_bg).fg(cell_fg))
+                    .border_type(BorderType::Plain);
                 // cell background color
-                let text_style = Style::default().bg(Color::Black);
-                let cell_text = Paragraph::new(text).block(block).style(text_style);
+                let text_style = Style::default().bg(cell_bg);
+                let cell_text = Paragraph::new(single_row_text)
+                    .block(block)
+                    .style(text_style)
+                    .alignment(Alignment::Center);
                 frame.render_widget(cell_text, *cell_rect);
             }
         }
@@ -235,6 +258,15 @@ impl App {
             KeyCode::Right => self.move_right(),
             KeyCode::Up => self.move_up(),
             KeyCode::Down => self.move_down(),
+            KeyCode::Char('1') => self.set_value_on_selected_cell(1),
+            KeyCode::Char('2') => self.set_value_on_selected_cell(2),
+            KeyCode::Char('3') => self.set_value_on_selected_cell(3),
+            KeyCode::Char('4') => self.set_value_on_selected_cell(4),
+            KeyCode::Char('5') => self.set_value_on_selected_cell(5),
+            KeyCode::Char('6') => self.set_value_on_selected_cell(6),
+            KeyCode::Char('7') => self.set_value_on_selected_cell(7),
+            KeyCode::Char('8') => self.set_value_on_selected_cell(8),
+            KeyCode::Char('9') => self.set_value_on_selected_cell(9),
             _ => {}
         }
     }
@@ -255,13 +287,15 @@ impl App {
             return;
         }
         let selected_col = selected_cell.1 - 1;
-        self.state.select_cell(Some((selected_cell.0, selected_col)));
+        self.state
+            .select_cell(Some((selected_cell.0, selected_col)));
     }
 
     fn move_right(&mut self) {
         let selected_cell = self.state.selected_cell().unwrap_or((0, 0));
         let selected_col = min(selected_cell.1 + 1, self.columns_nb - 1);
-        self.state.select_cell(Some((selected_cell.0, selected_col)));
+        self.state
+            .select_cell(Some((selected_cell.0, selected_col)));
     }
 
     fn move_up(&mut self) {
@@ -270,17 +304,31 @@ impl App {
             return;
         }
         let selected_row = selected_cell.0 - 1;
-        self.state.select_cell(Some((selected_row, selected_cell.1)));
+        self.state
+            .select_cell(Some((selected_row, selected_cell.1)));
     }
     fn move_down(&mut self) {
         let selected_cell = self.state.selected_cell().unwrap_or((0, 0));
         let selected_row = min(selected_cell.0 + 1, self.rows_nb - 1);
-        self.state.select_cell(Some((selected_row, selected_cell.1)));
+        self.state
+            .select_cell(Some((selected_row, selected_cell.1)));
+    }
+    fn set_value_on_selected_cell(&mut self, value: u8){
+        if let Some((selected_row, selected_col)) = self.state.selected_cell() {
+            self.board.array[selected_row][selected_col].value = Some(value);
+        };
     }
 
-    fn is_active(&self, row: usize, col: usize) -> bool {
-        //FIXME
-        false
+    fn get_display_value_for_boarditem(item: &BoardItem) -> String {
+        item.value.map(|x| x.to_string()).unwrap_or(" ".to_string())
+    }
+
+    fn get_display_value(&self, row: usize, col: usize) -> String {
+        App::get_display_value_for_boarditem(&self.board.array[row][col])
+    }
+
+    fn is_undefined(&self, row: usize, col: usize) -> bool {
+        self.board.array[row][col].value.is_none()
     }
 
     fn is_selected(&self, row: usize, col: usize) -> bool {
