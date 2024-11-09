@@ -5,7 +5,7 @@ use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 
 use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout};
 use ratatui::style::palette::tailwind;
-use ratatui::widgets::{BorderType, Borders};
+use ratatui::widgets::{BorderType, Borders, Padding};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -43,9 +43,6 @@ struct TableColors {
     selected_cell_style_fg: Color,
     defined_cell_bg: Color,
     defined_cell_style_fg: Color,
-    normal_row_color: Color,
-    alt_row_color: Color,
-    footer_border_color: Color,
 }
 
 impl TableColors {
@@ -57,9 +54,6 @@ impl TableColors {
             defined_cell_bg: tailwind::SLATE.c950,
             selected_cell_style_fg: color.c600,
             defined_cell_style_fg: tailwind::INDIGO.c300,
-            normal_row_color: tailwind::SLATE.c950,
-            alt_row_color: tailwind::SLATE.c900,
-            footer_border_color: color.c400,
         }
     }
 }
@@ -136,6 +130,7 @@ impl App {
         let block = Block::bordered()
             .title(title.centered())
             .title_bottom(instructions.centered())
+            .padding(Padding::new(0, 0, 0, 0))
             .border_set(border::THICK);
 
         frame.render_widget(block, frame.area());
@@ -144,67 +139,78 @@ impl App {
 
     fn render_board(&mut self, frame: &mut Frame, area: Rect) {
         const CELL_HEIGHT: u16 = 3;
-        let cell_width: u16 = self.longest_item_len + 2;
-        let row_constraints = Constraint::from_lengths([
-            CELL_HEIGHT,
-            CELL_HEIGHT,
-            CELL_HEIGHT,
-            1,
-            CELL_HEIGHT,
-            CELL_HEIGHT,
-            CELL_HEIGHT,
-            1,
-            CELL_HEIGHT,
-            CELL_HEIGHT,
-            CELL_HEIGHT,
-        ]);
-        let col_constraints = Constraint::from_lengths([
-            cell_width, cell_width, cell_width,
-            1,
-            cell_width, cell_width, cell_width,
-            1,
-            cell_width, cell_width, cell_width,
-        ]);
+        let cell_width: u16 = self.longest_item_len + 5;
+        let row_constraints = vec![
+            Constraint::Min(0),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(1),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(1),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Length(CELL_HEIGHT),
+            Constraint::Min(0),
+        ];
+        let col_constraints = vec![
+            Constraint::Min(0),
+            Constraint::Length(cell_width),
+            Constraint::Length(cell_width),
+            Constraint::Length(cell_width),
+            Constraint::Length(2),
+            Constraint::Length(cell_width),
+            Constraint::Length(cell_width),
+            Constraint::Length(cell_width),
+            Constraint::Length(2),
+            Constraint::Length(cell_width),
+            Constraint::Length(cell_width),
+            Constraint::Length(cell_width),
+            Constraint::Min(0),
+        ];
 
         let row_rects = Layout::default()
-            .flex(Flex::Center)
             .direction(Direction::Vertical)
             .vertical_margin(0)
             .horizontal_margin(0)
             .constraints(row_constraints)
             .split(area);
 
-        for (layout_r, row_rect) in row_rects.iter().enumerate() {
-            if layout_r == 3 || layout_r == 7 {
-                continue;
-            }
-            let r = if layout_r < 3 {
-                layout_r
-            } else if layout_r < 7 {
-                layout_r - 1
-            } else {
-                layout_r - 2
-            };
-
+        for (r, row_rect) in row_rects
+            .iter()
+            .enumerate()
+            // filter block spacers
+            .filter_map(|(i, val)| {
+                if i != 0 && i != 4 && i != 8 && i != 12 {
+                    Some(val)
+                } else {
+                    None
+                }
+            })
+            .enumerate()
+        {
             let col_rects = Layout::default()
-                .flex(Flex::Center)
                 .direction(Direction::Horizontal)
                 .vertical_margin(0)
                 .horizontal_margin(0)
                 .constraints(col_constraints.clone())
                 .split(*row_rect);
 
-            for (layout_c, cell_rect) in col_rects.iter().enumerate() {
-                if layout_c == 3 || layout_c == 7 {
-                    continue;
-                }
-                let c = if layout_c < 3 {
-                    layout_c
-                } else if layout_c < 7 {
-                    layout_c - 1
-                } else {
-                    layout_c - 2
-                };
+            for (c, cell_rect) in col_rects
+                .iter()
+                .enumerate()
+                // filter block spacers
+                .filter_map(|(i, val)| {
+                    if i != 0 && i != 4 && i != 8 && i != 12 {
+                        Some(val)
+                    } else {
+                        None
+                    }
+                })
+                .enumerate()
+            {
                 let single_row_text = self.get_display_value(r, c);
                 let cell_bg = if self.is_undefined(r, c) {
                     self.colors.cell_bg
@@ -221,11 +227,13 @@ impl App {
                 let block = Block::default()
                     .borders(Borders::ALL)
                     .style(Style::default().bg(cell_bg).fg(cell_fg))
+                    .padding(Padding::new(0, 0, 0, 0))
                     .border_type(BorderType::Plain);
                 // cell background color
                 let text_style = Style::default().bg(cell_bg);
                 let cell_text = Paragraph::new(single_row_text)
                     .block(block)
+                    .centered()
                     .style(text_style)
                     .alignment(Alignment::Center);
                 frame.render_widget(cell_text, *cell_rect);
@@ -313,7 +321,7 @@ impl App {
         self.state
             .select_cell(Some((selected_row, selected_cell.1)));
     }
-    fn set_value_on_selected_cell(&mut self, value: u8){
+    fn set_value_on_selected_cell(&mut self, value: u8) {
         if let Some((selected_row, selected_col)) = self.state.selected_cell() {
             self.board.array[selected_row][selected_col].value = Some(value);
         };
