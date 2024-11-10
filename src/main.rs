@@ -3,13 +3,12 @@ use std::io;
 
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind};
 
-use ratatui::layout::{Alignment, Constraint, Direction, Flex, Layout};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout};
 use ratatui::style::palette::tailwind;
-use ratatui::widgets::{BorderType, Borders, Padding};
+use ratatui::widgets::{BorderType, Borders, Padding, Wrap};
 use ratatui::{
-    buffer::Buffer,
     layout::Rect,
-    style::{self, Color, Modifier, Style, Stylize},
+    style::{Color, Style, Stylize},
     symbols::border,
     text::Line,
     widgets::{Block, Paragraph, TableState},
@@ -114,14 +113,14 @@ impl App {
     fn draw(&mut self, frame: &mut Frame) {
         let title = Line::from(" Sudoku App ".bold());
         let instructions = Line::from(vec![
-            " Move left (h)".into(),
-            "<Left>".blue().bold(),
-            " Move Right (l)".into(),
-            "<Right>".blue().bold(),
-            " Move Up (k)".into(),
-            "<Up>".blue().bold(),
-            " Move Down (j)".into(),
-            "<Down>".blue().bold(),
+            " Move left".into(),
+            "<Left or h>".blue().bold(),
+            " Move Right".into(),
+            "<Right or l>".blue().bold(),
+            " Move Up".into(),
+            "<Up or k>".blue().bold(),
+            " Move Down".into(),
+            "<Down or j>".blue().bold(),
             " Solve ".into(),
             "<S> ".green().bold(),
             " Quit ".into(),
@@ -139,7 +138,7 @@ impl App {
 
     fn render_board(&mut self, frame: &mut Frame, area: Rect) {
         const CELL_HEIGHT: u16 = 3;
-        let cell_width: u16 = self.longest_item_len + 5;
+        let cell_width: u16 = CELL_HEIGHT * 2;
         let row_constraints = vec![
             Constraint::Min(0),
             Constraint::Length(CELL_HEIGHT),
@@ -171,12 +170,12 @@ impl App {
             Constraint::Min(0),
         ];
 
-        let row_rects = Layout::default()
+        let (row_rects, _row_spacers) = Layout::default()
             .direction(Direction::Vertical)
+            .constraints(row_constraints)
             .vertical_margin(0)
             .horizontal_margin(0)
-            .constraints(row_constraints)
-            .split(area);
+            .split_with_spacers(area);
 
         for (r, row_rect) in row_rects
             .iter()
@@ -191,12 +190,12 @@ impl App {
             })
             .enumerate()
         {
-            let col_rects = Layout::default()
+            let (col_rects , _col_spacers) = Layout::default()
                 .direction(Direction::Horizontal)
                 .vertical_margin(0)
                 .horizontal_margin(0)
                 .constraints(col_constraints.clone())
-                .split(*row_rect);
+                .split_with_spacers(*row_rect);
 
             for (c, cell_rect) in col_rects
                 .iter()
@@ -233,9 +232,10 @@ impl App {
                 let text_style = Style::default().bg(cell_bg);
                 let cell_text = Paragraph::new(single_row_text)
                     .block(block)
-                    .centered()
                     .style(text_style)
-                    .alignment(Alignment::Center);
+                    .alignment(Alignment::Center)
+                    .centered()
+                    .wrap(Wrap{trim: true});
                 frame.render_widget(cell_text, *cell_rect);
             }
         }
