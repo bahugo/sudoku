@@ -42,6 +42,7 @@ struct TableColors {
     selected_cell_style_fg: Color,
     defined_cell_bg: Color,
     defined_cell_style_fg: Color,
+    error_cell_style_fg: Color,
 }
 
 impl TableColors {
@@ -53,6 +54,7 @@ impl TableColors {
             defined_cell_bg: tailwind::SLATE.c950,
             selected_cell_style_fg: color.c600,
             defined_cell_style_fg: tailwind::INDIGO.c300,
+            error_cell_style_fg: tailwind::RED.c300,
         }
     }
 }
@@ -121,6 +123,8 @@ impl App {
             "<Up or k>".blue().bold(),
             " Move Down".into(),
             "<Down or j>".blue().bold(),
+            " delete item ".into(),
+            "<x> ".red().bold(),
             " Solve ".into(),
             "<S> ".green().bold(),
             " Quit ".into(),
@@ -220,6 +224,8 @@ impl App {
                     self.colors.selected_cell_style_fg
                 } else if self.is_undefined(r, c) {
                     self.colors.defined_cell_style_fg
+                } else if self.is_error(r, c) {
+                    self.colors.error_cell_style_fg
                 } else {
                     self.colors.cell_fg
                 };
@@ -262,6 +268,7 @@ impl App {
             KeyCode::Char('l') => self.move_right(),
             KeyCode::Char('k') => self.move_up(),
             KeyCode::Char('j') => self.move_down(),
+            KeyCode::Char('x') => self.delete_item(),
             KeyCode::Left => self.move_left(),
             KeyCode::Right => self.move_right(),
             KeyCode::Up => self.move_up(),
@@ -281,7 +288,7 @@ impl App {
     // ANCHOR_END: handle_key_event fn
 
     fn solve(&mut self) {
-        let board = self.board.solve_naive_implementation().unwrap();
+        let board = self.board.solve().unwrap();
         self.board = board;
     }
 
@@ -321,6 +328,15 @@ impl App {
         self.state
             .select_cell(Some((selected_row, selected_cell.1)));
     }
+
+    fn delete_item(&mut self) {
+        if let Some((selected_row, selected_col)) = self.state.selected_cell() {
+            let mut array = self.board.array.clone();
+            array[selected_row][selected_col] = BoardItem::unknown();
+            self.board = Board::new(array);
+        };
+    }
+
     fn set_value_on_selected_cell(&mut self, value: u8) {
         if let Some((selected_row, selected_col)) = self.state.selected_cell() {
             self.board.array[selected_row][selected_col].value = Some(value);
@@ -337,6 +353,10 @@ impl App {
 
     fn is_undefined(&self, row: usize, col: usize) -> bool {
         self.board.array[row][col].value.is_none()
+    }
+
+    fn is_error(&self, row: usize, col: usize) -> bool {
+        !self.board.is_cell_valid(row,col)
     }
 
     fn is_selected(&self, row: usize, col: usize) -> bool {

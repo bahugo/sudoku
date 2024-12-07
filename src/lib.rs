@@ -223,6 +223,13 @@ impl Board {
         output
     }
 
+    pub fn is_cell_valid(&self, row: usize, col: usize) -> bool {
+        let cell_value = self.array[row][col].value;
+        !self.get_neighbor_indexes(row, col).into_iter()
+            .map(|(other_row, other_col)| self.array[other_row][other_col].value)
+            .any( |value| value == cell_value )
+    }
+
     pub fn is_valid(&self) -> bool {
         for items in self
             .get_all_rows()
@@ -278,18 +285,24 @@ impl Board {
         block_indexes
     }
 
-    fn update_all_candidates(&mut self) {
-        for (row, col) in Board::get_all_indexes() {
-            self.update_candidates(row, col);
-        }
-    }
-    fn update_candidates(&mut self, row: usize, col: usize) {
+    fn get_neighbor_indexes(&self, row: usize, col: usize) -> Vec<(usize, usize)> {
         let neighbor_indexes = self
             .get_row_neighbor_indexes(row, col)
             .into_iter()
             .chain(self.get_col_neighbor_indexes(row, col))
             .chain(self.get_block_neighbor_indexes(row, col))
-            .collect::<Vec<(usize, usize)>>();
+            .collect();
+        neighbor_indexes
+    }
+
+    fn update_all_candidates(&mut self) {
+        for (row, col) in Board::get_all_indexes() {
+            self.update_candidates(row, col);
+        }
+    }
+
+    fn update_candidates(&mut self, row: usize, col: usize) {
+        let neighbor_indexes = self.get_neighbor_indexes(row, col);
         neighbor_indexes.iter().for_each(|(i_row, i_col)| {
             let val = self.array[*i_row][*i_col].value;
             if let Some(val) = val {
@@ -397,7 +410,7 @@ impl Board {
         }
     }
 
-    pub fn solve_naive_implementation(&self) -> Result<Board, &str> {
+    pub fn solve(&self) -> Result<Board, &str> {
         let mut output = Self::new(self.array.to_owned());
         let mut nb_undefined_values: usize = 0;
 
@@ -417,7 +430,7 @@ impl Board {
                     for val in candidates.as_slice() {
                         let mut output_try = output.clone();
                         output_try.array[unknown_row][unknown_col].remove_candidate(*val);
-                        let result = output_try.solve_naive_implementation();
+                        let result = output_try.solve();
                         match result {
                             Ok(b) => output_try = b,
                             _ => continue,
@@ -631,6 +644,13 @@ mod test {
         let actual = input.get_block_neighbor_indexes(5, 7);
         assert_eq!(actual, vec![ (3, 6), (3, 7), (3, 8), (4, 6), (4, 7), (4, 8), (5, 6), (5, 8), ]);
 
+        let actual = input.get_neighbor_indexes(0, 0);
+        assert_eq!(actual, vec![
+            (0, 1), (0, 2), (0, 3), (0, 4), (0, 5), (0, 6), (0, 7), (0, 8),
+            (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), (7, 0), (8, 0),
+            (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2),
+        ]);
+
     }
 
     #[test]
@@ -669,6 +689,9 @@ mod test {
         let actual = input.is_valid();
         assert!(actual);
 
+        let actual = input.is_cell_valid(1, 0);
+        assert!(actual);
+
         // invalid because of col
         input.array[1][0].set_value(5);
         let actual = input.is_valid();
@@ -683,6 +706,10 @@ mod test {
         input.array[1][0].set_value(3);
         let actual = input.is_valid();
         assert!(!actual);
+
+        let actual = input.is_cell_valid(1, 0);
+        assert!(!actual);
+
 
     }
 
@@ -701,7 +728,7 @@ mod test {
             [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)],
         ]);
 
-        let actual = input.solve_naive_implementation().unwrap();
+        let actual = input.solve().unwrap();
 
         let expected = Board::new([
             [BoardItem::known(5), BoardItem::known(3), BoardItem::known(4), BoardItem::known(6), BoardItem::known(7), BoardItem::known(8), BoardItem::known(9), BoardItem::known(1), BoardItem::known(2)],
@@ -733,7 +760,7 @@ mod test {
             [BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(8), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::known(9)],
         ]);
 
-        let actual = input.solve_naive_implementation().unwrap();
+        let actual = input.solve().unwrap();
 
         let expected = Board::new([
             [BoardItem::known(5), BoardItem::known(3), BoardItem::known(4), BoardItem::known(6), BoardItem::known(7), BoardItem::known(8), BoardItem::known(9), BoardItem::known(1), BoardItem::known(2)],

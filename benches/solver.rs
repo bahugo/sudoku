@@ -6,7 +6,7 @@ fn main() {
 
 #[rustfmt::skip]
 #[divan::bench]
-fn simple_board_naive_implementation() {
+fn simple_board() {
     let input = Board::new(
         [
             [BoardItem::known(5), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
@@ -21,12 +21,12 @@ fn simple_board_naive_implementation() {
         ],
     );
 
-    let _ = input.solve_naive_implementation();
+    let _ = input.solve();
 }
 
 #[rustfmt::skip]
 #[divan::bench]
-fn less_simple_board_naive_implementation() {
+fn less_simple_board() {
     let input = Board::new(
         [
             [BoardItem::unknown(), BoardItem::known(3), BoardItem::unknown(), BoardItem::unknown(), BoardItem::known(7), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown(), BoardItem::unknown()],
@@ -41,5 +41,5 @@ fn less_simple_board_naive_implementation() {
         ],
     );
 
-    let _ = input.solve_naive_implementation();
+    let _ = input.solve();
 }
